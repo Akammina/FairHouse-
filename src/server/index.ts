@@ -317,7 +317,7 @@ app.post("/api/memory/flip", (req, res) =>
     // First card of the turn — reveal it, no move spent yet.
     if (r.first === null) {
       r.first = idx;
-      return { index: idx, id: r.deck[idx], first: true };
+      return { index: idx, id: r.deck[idx], firstCard: true };
     }
     if (idx === r.first) throw new Error("Pick a different card");
 

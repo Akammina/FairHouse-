@@ -101,7 +101,7 @@ export function renderMemory(root, ctx) {
     try {
       const res = await ctx.api("/api/memory/flip", { roundId: round.roundId, index: i });
       reveal(el, res.id);
-      if (res.first) { lock = false; return; } // first card of the turn — free to pick the second
+      if (res.firstCard) { lock = false; return; } // first card of the turn — free to pick the second
 
       if (typeof res.movesLeft === "number") $("memLeft").textContent = res.movesLeft;
       else if (res.busted || res.cleared) $("memLeft").textContent = Math.max(0, round.budget - res.moves);
