@@ -21,6 +21,7 @@ import {
   rouletteNumber, rouletteColor, roulettePayout, type RouletteBet,
   wheelSegment, wheelMultiplier, WHEEL_SEGMENTS,
   kenoDraw, kenoMultiplier, KENO_POOL, KENO_MAX_PICKS,
+  memoryDeck, MEMORY_DIFFICULTY,
 } from "../shared/games.js";
 import {
   ensureSession, getPlayer, getBalance, debitStake, credit, recordBet,
@@ -268,6 +269,83 @@ function activeMinesFor(playerId: string) {
     clientSeed: r.clientSeed,
   };
 }
+
+// ---------- Memory Match (server-authoritative skill bet) ----------
+interface MemoryRound {
+  playerId: string; stakeCents: number; pairs: number; budget: number; mult: number;
+  nonce: number; serverSeedHash: string; clientSeed: string;
+  deck: number[]; matched: Set<number>; moves: number; first: number | null;
+}
+const memRounds = new Map<string, MemoryRound>();
+const memActive = new Map<string, string>();
+
+app.post("/api/memory/start", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    const d = MEMORY_DIFFICULTY[String(req.body?.difficulty)] || MEMORY_DIFFICULTY.easy;
+    const bet = stakeCents(req.body?.stake);
+    if (!(bet > 0)) throw new Error("Invalid stake");
+
+    const prev = memActive.get(p.id); // abandoning a running game forfeits its stake
+    if (prev) { memRounds.delete(prev); memActive.delete(p.id); }
+
+    debitStake(p.id, p.nonce, bet);
+    const deck = await memoryDeck(await betHmac(p.server_seed, p.client_seed, p.nonce), d.pairs);
+    const roundId = randomBytes(8).toString("hex");
+    memRounds.set(roundId, {
+      playerId: p.id, stakeCents: bet, pairs: d.pairs, budget: d.budget, mult: d.mult,
+      nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed,
+      deck, matched: new Set(), moves: 0, first: null,
+    });
+    memActive.set(p.id, roundId);
+    return {
+      roundId, pairs: d.pairs, cols: d.cols, budget: d.budget, mult: d.mult, tiles: 2 * d.pairs,
+      betCents: bet, balance: getBalance(p.id), nonce: p.nonce,
+      serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed,
+    };
+  }),
+);
+
+app.post("/api/memory/flip", (req, res) =>
+  wrap(res, async () => {
+    const r = memRounds.get(String(req.body?.roundId));
+    if (!r) throw new Error("No such game");
+    const idx = Math.trunc(Number(req.body?.index));
+    if (!(idx >= 0 && idx < 2 * r.pairs)) throw new Error("Bad card");
+    if (r.matched.has(idx)) throw new Error("Already matched");
+
+    // First card of the turn — reveal it, no move spent yet.
+    if (r.first === null) {
+      r.first = idx;
+      return { index: idx, id: r.deck[idx], first: true };
+    }
+    if (idx === r.first) throw new Error("Pick a different card");
+
+    const firstIdx = r.first;
+    r.first = null;
+    r.moves++;
+    const isMatch = r.deck[idx] === r.deck[firstIdx];
+    if (isMatch) { r.matched.add(idx); r.matched.add(firstIdx); }
+    const cleared = r.matched.size === 2 * r.pairs;
+
+    const base = { index: idx, id: r.deck[idx], match: isMatch, moves: r.moves,
+      ...(isMatch ? { matched: [firstIdx, idx] } : { first: firstIdx, second: idx }) };
+
+    if (cleared) {
+      const payout = Math.floor(r.stakeCents * r.mult);
+      const balance = credit(r.playerId, payout);
+      recordBet(r.playerId, "memory", r.nonce, `${r.pairs} pairs cleared in ${r.moves} moves @${r.mult}×`, r.stakeCents, payout, true, r.serverSeedHash, r.clientSeed);
+      memRounds.delete(String(req.body.roundId)); memActive.delete(r.playerId);
+      return { ...base, cleared: true, payoutCents: payout, balance };
+    }
+    if (r.moves >= r.budget) {
+      recordBet(r.playerId, "memory", r.nonce, `${r.pairs} pairs, out of moves after ${r.moves}`, r.stakeCents, 0, false, r.serverSeedHash, r.clientSeed);
+      memRounds.delete(String(req.body.roundId)); memActive.delete(r.playerId);
+      return { ...base, busted: true, balance: getBalance(r.playerId) };
+    }
+    return { ...base, movesLeft: r.budget - r.moves };
+  }),
+);
 
 const PORT = Number(process.env.PORT) || 3300;
 app.listen(PORT, () => console.log(`FairHouse casino running at http://localhost:${PORT}`));

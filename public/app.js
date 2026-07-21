@@ -96,6 +96,7 @@ function renderLobby(root) {
     { key: "roulette", icon: "🎡", name: "Roulette", tag: "Bet a number or color, spin the wheel.", accent: "#ff5d6c" },
     { key: "wheel", icon: "🎯", name: "Wheel", tag: "Spin for a multiplier segment.", accent: "#33d17f" },
     { key: "keno", icon: "🔢", name: "Keno", tag: "Pick numbers and match the draw.", accent: "#3b8ff0" },
+    { key: "memory", icon: "🃏", name: "Memory", tag: "Clear the pairs within your move budget.", accent: "#e879f9" },
   ];
   root.innerHTML = `
     <div class="lobby-hero">

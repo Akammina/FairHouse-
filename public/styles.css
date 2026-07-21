@@ -66,6 +66,7 @@ a { color: inherit; text-decoration: none; }
 .game-card:nth-child(3) { animation-delay: 0.15s; } .game-card:nth-child(4) { animation-delay: 0.21s; }
 .game-card:nth-child(5) { animation-delay: 0.27s; } .game-card:nth-child(6) { animation-delay: 0.33s; }
 .game-card:nth-child(7) { animation-delay: 0.39s; } .game-card:nth-child(8) { animation-delay: 0.45s; }
+.game-card:nth-child(9) { animation-delay: 0.51s; }
 @keyframes cardRise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 .game-card .icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 30px; background: color-mix(in srgb, var(--card-accent) 16%, var(--panel-2)); border: 1px solid color-mix(in srgb, var(--card-accent) 34%, var(--line)); animation: floaty 4.5s ease-in-out infinite; }
 .game-card:nth-child(even) .icon { animation-delay: -2.2s; }

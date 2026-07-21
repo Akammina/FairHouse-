@@ -1,143 +1,153 @@
-// Memory Match — a for-fun card game (no wallet, no betting). Flip two cards to
-// find matching pairs; clear the board in as few moves as you can.
+// Memory Match — a provably-fair skill bet. Wager, then clear all pairs within
+// your move budget to win stake × multiplier. The deck is a seed-derived shuffle
+// held by the server, which reveals one card per flip (you can't peek ahead).
+import { shell, renderRecent, pushRecent, stakeField, wireStake } from "./common.js";
 import { burst } from "../confetti.js";
 
-const SUITS = [["♠", "dark"], ["♥", "red"], ["♦", "red"], ["♣", "dark"]];
-const VALUES = ["A", "K", "Q", "J", "10", "9", "8", "7", "6", "5", "4", "3", "2"];
+const ACCENT = "#e879f9";
+const FACES = [
+  { v: "A", s: "♠", c: "dark" }, { v: "K", s: "♥", c: "red" }, { v: "Q", s: "♦", c: "red" }, { v: "J", s: "♣", c: "dark" },
+  { v: "10", s: "♥", c: "red" }, { v: "9", s: "♠", c: "dark" }, { v: "8", s: "♦", c: "red" }, { v: "7", s: "♣", c: "dark" },
+  { v: "6", s: "♥", c: "red" }, { v: "5", s: "♠", c: "dark" }, { v: "4", s: "♦", c: "red" }, { v: "3", s: "♣", c: "dark" }, { v: "2", s: "♥", c: "red" },
+];
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
-function makeDeck(pairs) {
-  const all = [];
-  for (const v of VALUES) for (const [s, c] of SUITS) all.push({ v, s, c });
-  const faces = shuffle(all).slice(0, pairs);
-  const deck = [];
-  faces.forEach((f) => { deck.push({ ...f }); deck.push({ ...f }); });
-  return shuffle(deck);
-}
-
 export function renderMemory(root, ctx) {
-  const DIFF = { easy: { pairs: 8, cols: 4 }, hard: { pairs: 12, cols: 6 } };
-  let diff = "easy";
-
-  root.innerHTML = `
-    <section class="card stage" style="max-width:600px;margin:0 auto">
-      <h2 class="game-title"><span class="dot" style="background:#e879f9"></span>🃏 Memory Match</h2>
-      <p class="msg" id="memMsg">Flip two cards to find a matching pair.</p>
-      <div class="mem-bar">
-        <div class="mem-stats">
-          <span>Moves <b id="memMoves">0</b></span>
-          <span>Pairs <b id="memPairs">0</b></span>
-          <span>Time <b id="memTime">0:00</b></span>
-        </div>
-        <div class="mem-diff">
-          <button class="mini" data-diff="easy">4×4</button>
-          <button class="mini" data-diff="hard">6×4</button>
-          <button class="mini" id="memNew">New game</button>
-        </div>
+  shell(root, {
+    title: "Memory Match", icon: "🃏", accent: ACCENT,
+    stage: `
+      <p class="msg" id="memMsg" style="margin-bottom:14px">Wager, then clear the board within your move budget to win.</p>
+      <div class="stat-row" style="margin-bottom:14px">
+        <div class="stat"><span class="l">Moves left</span><span class="v" id="memLeft">—</span></div>
+        <div class="stat"><span class="l">Pairs</span><span class="v" id="memPairs">—</span></div>
+        <div class="stat"><span class="l">Win</span><span class="v" id="memWin">—</span></div>
       </div>
       <div class="mem-grid" id="memGrid"></div>
-      <p class="mem-best" id="memBest"></p>
-    </section>`;
+      <div id="memSetup">
+        <div class="fld"><span>Difficulty</span>
+          <div class="pick-row">
+            <button class="pick active" data-diff="easy">Easy · 4×4 · 1.9×</button>
+            <button class="pick" data-diff="hard">Hard · 6×4 · 2.8×</button>
+          </div>
+        </div>
+        <div style="margin-top:14px">${stakeField("memStake")}</div>
+        <button id="memStart" class="btn" style="margin-top:14px;--accent:${ACCENT}">Deal cards</button>
+      </div>`,
+  });
+  renderRecent(ctx, "memory");
+  wireStake("memStake");
 
   const $ = (id) => document.getElementById(id);
   const grid = $("memGrid");
-  let deck = [], cards = [], firstIdx = null, lock = false, moves = 0, matches = 0, started = false;
-  let timerId = 0, mismatchTimer = 0, startMs = 0;
+  let diff = "easy", round = null, cards = [], faceForId = [], lock = false, mismatchTimer = 0, matchedCount = 0;
 
-  ctx.onCleanup(() => { clearInterval(timerId); clearTimeout(mismatchTimer); });
+  ctx.onCleanup(() => clearTimeout(mismatchTimer));
 
-  function bestKey() { return `fairhouse_memory_${diff}`; }
-  function showBest() {
-    const b = JSON.parse(localStorage.getItem(bestKey()) || "null");
-    $("memBest").textContent = b ? `Best (${diff === "easy" ? "4×4" : "6×4"}): ${b.moves} moves · ${fmt(b.ms)}` : "";
-  }
-  const fmt = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  document.querySelectorAll("[data-diff]").forEach((b) =>
+    b.addEventListener("click", () => { diff = b.dataset.diff; document.querySelectorAll("[data-diff]").forEach((x) => x.classList.toggle("active", x === b)); }),
+  );
 
-  function startTimer() {
-    startMs = performance.now();
-    timerId = setInterval(() => { $("memTime").textContent = fmt(performance.now() - startMs); }, 500);
-  }
-  function updateStats() {
-    $("memMoves").textContent = moves;
-    $("memPairs").textContent = `${matches}/${DIFF[diff].pairs}`;
-  }
+  const setSetup = (on) => { $("memSetup").hidden = !on; };
+  const faceHTML = (id) => `<span class="v">${faceForId[id].v}</span><span class="s">${faceForId[id].s}</span>`;
 
-  function newGame() {
-    clearInterval(timerId); clearTimeout(mismatchTimer);
-    const { pairs, cols } = DIFF[diff];
-    deck = makeDeck(pairs);
-    firstIdx = null; lock = false; moves = 0; matches = 0; started = false;
+  function buildBoard(tiles, cols) {
     grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     grid.innerHTML = "";
-    cards = deck.map((card, i) => {
+    cards = Array.from({ length: tiles }, (_, i) => {
       const el = document.createElement("div");
       el.className = "mcard";
-      el.innerHTML = `<div class="mcard-inner">
-        <div class="mcard-face mcard-back">♠</div>
-        <div class="mcard-face mcard-front ${card.c}"><span class="v">${card.v}</span><span class="s">${card.s}</span></div>
-      </div>`;
+      el.innerHTML = `<div class="mcard-inner"><div class="mcard-face mcard-back">♠</div><div class="mcard-face mcard-front"></div></div>`;
       el.addEventListener("click", () => flip(i));
       grid.appendChild(el);
       return el;
     });
-    $("memMsg").textContent = "Flip two cards to find a matching pair.";
-    $("memMsg").className = "msg";
-    $("memTime").textContent = "0:00";
-    updateStats(); showBest();
   }
 
-  function flip(i) {
-    if (lock) return;
-    const el = cards[i];
-    if (el.classList.contains("flipped") || el.classList.contains("matched")) return;
-    if (!started) { started = true; startTimer(); }
+  function reveal(el, id) {
+    const front = el.querySelector(".mcard-front");
+    front.innerHTML = faceHTML(id);
+    front.className = `mcard-face mcard-front ${faceForId[id].c}`;
     el.classList.add("flipped");
     ctx.sound.reveal();
+  }
 
-    if (firstIdx === null) { firstIdx = i; return; }
-    moves++; updateStats();
-    const a = deck[firstIdx], b = deck[i];
-    const fi = firstIdx, si = i;
-    firstIdx = null;
+  $("memStart").addEventListener("click", async () => {
+    $("memStart").disabled = true;
+    try {
+      const res = await ctx.api("/api/memory/start", { stake: Number($("memStake").value), difficulty: diff });
+      round = { roundId: res.roundId, pairs: res.pairs, mult: res.mult, budget: res.budget, stakeCents: res.betCents, nonce: res.nonce, serverSeedHash: res.serverSeedHash, clientSeed: res.clientSeed };
+      faceForId = shuffle(FACES.slice()).slice(0, res.pairs);
+      matchedCount = 0; lock = false;
+      ctx.applyResult(res);
+      buildBoard(res.tiles, res.cols);
+      $("memLeft").textContent = res.budget;
+      $("memPairs").textContent = `0/${res.pairs}`;
+      $("memWin").textContent = ctx.money(Math.floor(res.betCents * res.mult));
+      $("memMsg").textContent = `Find all ${res.pairs} pairs within ${res.budget} moves.`;
+      $("memMsg").className = "msg";
+      setSetup(false);
+    } catch (e) {
+      $("memMsg").textContent = e.message; $("memMsg").className = "msg lose";
+    } finally {
+      $("memStart").disabled = false;
+    }
+  });
 
-    if (a.v === b.v && a.s === b.s) {
-      cards[fi].classList.add("matched"); cards[si].classList.add("matched");
-      matches++; updateStats(); ctx.sound.cashout();
-      if (matches === DIFF[diff].pairs) win();
-    } else {
-      lock = true; ctx.sound.click();
-      mismatchTimer = setTimeout(() => {
-        cards[fi].classList.remove("flipped"); cards[si].classList.remove("flipped");
-        lock = false;
-      }, 850);
+  async function flip(i) {
+    if (!round || lock) return;
+    const el = cards[i];
+    if (el.classList.contains("flipped") || el.classList.contains("matched")) return;
+    lock = true;
+    try {
+      const res = await ctx.api("/api/memory/flip", { roundId: round.roundId, index: i });
+      reveal(el, res.id);
+      if (res.first) { lock = false; return; } // first card of the turn — free to pick the second
+
+      if (typeof res.movesLeft === "number") $("memLeft").textContent = res.movesLeft;
+      else if (res.busted || res.cleared) $("memLeft").textContent = Math.max(0, round.budget - res.moves);
+
+      if (res.match) {
+        cards[res.matched[0]].classList.add("matched");
+        cards[res.matched[1]].classList.add("matched");
+        matchedCount++;
+        $("memPairs").textContent = `${matchedCount}/${round.pairs}`;
+        if (res.cleared) { win(res); }
+        else { ctx.sound.cashout(); lock = false; if (res.busted) bust(res); }
+      } else {
+        ctx.sound.click();
+        const a = res.first, b = res.second;
+        mismatchTimer = setTimeout(() => {
+          cards[a].classList.remove("flipped");
+          cards[b].classList.remove("flipped");
+          lock = false;
+          if (res.busted) bust(res);
+        }, 850);
+      }
+    } catch (e) {
+      $("memMsg").textContent = e.message; $("memMsg").className = "msg lose";
+      lock = false;
     }
   }
 
-  function win() {
-    clearInterval(timerId);
-    const ms = performance.now() - startMs;
-    $("memMsg").textContent = `You cleared the board in ${moves} moves · ${fmt(ms)}! 🎉`;
+  function win(res) {
+    $("memMsg").textContent = `Cleared in ${res.moves} moves — won +${ctx.money(res.payoutCents - round.stakeCents)}! 🎉`;
     $("memMsg").className = "msg win";
     ctx.sound.win();
+    ctx.applyResult(res);
     const r = grid.getBoundingClientRect();
     burst(r.left + r.width / 2, r.top + r.height / 2, 1.4);
-
-    const prev = JSON.parse(localStorage.getItem(bestKey()) || "null");
-    if (!prev || moves < prev.moves || (moves === prev.moves && ms < prev.ms)) {
-      localStorage.setItem(bestKey(), JSON.stringify({ moves, ms }));
-      $("memMsg").textContent += " New best!";
-    }
-    showBest();
+    pushRecent(ctx, "memory", `${round.pairs} pairs in ${res.moves} @${round.mult}×`, round.stakeCents, res.payoutCents, true, round.nonce, round.serverSeedHash, round.clientSeed);
+    round = null; setSetup(true);
   }
 
-  document.querySelectorAll("[data-diff]").forEach((b) =>
-    b.addEventListener("click", () => {
-      diff = b.dataset.diff;
-      document.querySelectorAll("[data-diff]").forEach((x) => x.classList.toggle("sel", x === b));
-      newGame();
-    }),
-  );
-  document.querySelector('[data-diff="easy"]').classList.add("sel");
-  $("memNew").addEventListener("click", newGame);
-  newGame();
+  function bust(res) {
+    $("memMsg").textContent = `Out of moves — lost ${ctx.money(round.stakeCents)}`;
+    $("memMsg").className = "msg lose";
+    ctx.sound.lose();
+    ctx.applyResult(res);
+    pushRecent(ctx, "memory", `${round.pairs} pairs, busted at ${res.moves} moves`, round.stakeCents, 0, false, round.nonce, round.serverSeedHash, round.clientSeed);
+    round = null; setSetup(true);
+  }
+
+  setSetup(true);
 }

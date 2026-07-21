@@ -143,3 +143,22 @@ export async function kenoDraw(hmac: string): Promise<number[]> {
 export function kenoMultiplier(spots: number, hits: number): number {
   return KENO_PAYTABLE[spots]?.[hits] ?? 0;
 }
+
+// ---------- Memory: a provably-fair shuffled deck of pairs ----------
+export const MEMORY_DIFFICULTY: Record<string, { pairs: number; cols: number; budget: number; mult: number }> = {
+  easy: { pairs: 8, cols: 4, budget: 16, mult: 1.9 },
+  hard: { pairs: 12, cols: 6, budget: 25, mult: 2.8 },
+};
+
+/**
+ * Deterministically arrange pair-ids [0,0,1,1,…,P-1,P-1] into a shuffled deck by
+ * sorting positions on a per-slot hash. Same seed → same deal, so the shuffle is
+ * verifiable and committed before play.
+ */
+export async function memoryDeck(hmac: string, pairs: number): Promise<number[]> {
+  const ids: number[] = [];
+  for (let i = 0; i < pairs; i++) { ids.push(i, i); }
+  const keyed = await Promise.all(ids.map(async (id, i) => ({ id, k: await sha256Hex(`${hmac}:${i}`) })));
+  keyed.sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
+  return keyed.map((x) => x.id);
+}
