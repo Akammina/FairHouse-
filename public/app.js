@@ -17,7 +17,19 @@ async function api(path, body) {
   return data;
 }
 
-function renderBalance() { $("balance").textContent = money(state.balance); }
+let lastBalance = null;
+function renderBalance() {
+  const el = $("balance");
+  el.textContent = money(state.balance);
+  if (lastBalance !== null && state.balance !== lastBalance) {
+    el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
+    if (state.balance > lastBalance) {
+      el.style.color = "var(--win)";
+      setTimeout(() => (el.style.color = ""), 550);
+    }
+  }
+  lastBalance = state.balance;
+}
 
 const ctx = {
   api,
