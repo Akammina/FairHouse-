@@ -46,7 +46,7 @@ const wrap = (res: express.Response, fn: () => Promise<unknown>) =>
 app.post("/api/session", (req, res) =>
   wrap(res, async () => {
     const s = await ensureSession(req.body?.playerId);
-    return { ...s, recent: recentBets(s.playerId) };
+    return { ...s, recent: recentBets(s.playerId), activeMines: activeMinesFor(s.playerId) };
   }),
 );
 app.post("/api/rotate", (req, res) =>
@@ -249,6 +249,21 @@ app.post("/api/mines/cashout", (req, res) =>
 function endRound(roundId: string, playerId: string): void {
   rounds.delete(roundId);
   activeByPlayer.delete(playerId);
+}
+
+/** An in-progress Mines round for a player, so the client can resume after a reload. */
+function activeMinesFor(playerId: string) {
+  const roundId = activeByPlayer.get(playerId);
+  if (!roundId) return null;
+  const r = rounds.get(roundId);
+  if (!r) return null;
+  return {
+    roundId,
+    mines: r.mines,
+    revealed: r.revealed,
+    multiplier: minesMultiplier(r.revealed.length, r.mines),
+    stakeCents: r.stakeCents,
+  };
 }
 
 const PORT = Number(process.env.PORT) || 3300;

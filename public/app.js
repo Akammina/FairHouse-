@@ -12,7 +12,7 @@ import { renderKeno } from "./games/keno.js";
 
 const $ = (id) => document.getElementById(id);
 
-const state = { playerId: null, balance: 0, serverSeedHash: "", clientSeed: "", nonce: 0, recent: [] };
+const state = { playerId: null, balance: 0, serverSeedHash: "", clientSeed: "", nonce: 0, recent: [], activeMines: null };
 
 async function api(path, body) {
   const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ playerId: state.playerId, ...body }) });
@@ -35,10 +35,12 @@ function renderBalance() {
   lastBalance = state.balance;
 }
 
+let cleanups = [];
 const ctx = {
   api,
   money,
   state,
+  onCleanup(fn) { cleanups.push(fn); },
   applyResult(res) {
     if (typeof res.balance === "number") { state.balance = res.balance; renderBalance(); }
     if (typeof res.nonce === "number") { state.nonce = res.nonce + 1; renderModal(); }
@@ -49,6 +51,8 @@ const ctx = {
 // ---------- Router ----------
 const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, limbo: renderLimbo, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno };
 function route() {
+  cleanups.forEach((fn) => { try { fn(); } catch { /* ignore */ } }); // tear down the previous view
+  cleanups = [];
   const key = location.hash.replace(/^#\/?/, "");
   document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("active", a.getAttribute("href") === `#/${key}`));
   const view = $("view");
@@ -63,7 +67,7 @@ function renderLobby(root) {
     { key: "coinflip", icon: "🪙", name: "Coinflip", tag: "Heads or tails, double or nothing.", accent: "var(--coin)" },
     { key: "limbo", icon: "🚀", name: "Limbo", tag: "Set a multiplier and see if it hits.", accent: "var(--limbo)" },
     { key: "mines", icon: "💣", name: "Mines", tag: "Uncover gems, dodge the mines, cash out.", accent: "var(--mines)" },
-    { key: "plinko", icon: "🎯", name: "Plinko", tag: "Drop a ball into a multiplier bucket.", accent: "#e879f9" },
+    { key: "plinko", icon: "🔻", name: "Plinko", tag: "Drop a ball into a multiplier bucket.", accent: "#e879f9" },
     { key: "roulette", icon: "🎡", name: "Roulette", tag: "Bet a number or color, spin the wheel.", accent: "#ff5d6c" },
     { key: "wheel", icon: "🎯", name: "Wheel", tag: "Spin for a multiplier segment.", accent: "#33d17f" },
     { key: "keno", icon: "🔢", name: "Keno", tag: "Pick numbers and match the draw.", accent: "#3b8ff0" },
@@ -71,7 +75,7 @@ function renderLobby(root) {
   root.innerHTML = `
     <div class="lobby-hero">
       <h1>FairHouse</h1>
-      <p>Four games, one wallet — every outcome cryptographically provable.</p>
+      <p>Eight games, one wallet — every outcome cryptographically provable.</p>
     </div>
     <div class="game-grid">
       ${games.map((g) => `
@@ -131,7 +135,7 @@ $("fairBtn").addEventListener("click", () => {
     const s = await api("/api/session", { playerId: localStorage.getItem("fairhouse_pid") });
     state.playerId = s.playerId;
     localStorage.setItem("fairhouse_pid", s.playerId);
-    state.balance = s.balance; state.serverSeedHash = s.serverSeedHash; state.clientSeed = s.clientSeed; state.nonce = s.nonce; state.recent = s.recent || [];
+    state.balance = s.balance; state.serverSeedHash = s.serverSeedHash; state.clientSeed = s.clientSeed; state.nonce = s.nonce; state.recent = s.recent || []; state.activeMines = s.activeMines || null;
     renderBalance();
     renderModal();
     route();

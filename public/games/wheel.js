@@ -31,7 +31,9 @@ export function renderWheel(root, ctx) {
     canvas.width = r.width * dpr; canvas.height = r.height * dpr;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  window.addEventListener("resize", () => { size(); draw(); });
+  const onResize = () => { size(); draw(); };
+  window.addEventListener("resize", onResize);
+  ctx.onCleanup(() => { window.removeEventListener("resize", onResize); cancelAnimationFrame(anim); });
   size();
 
   function draw() {

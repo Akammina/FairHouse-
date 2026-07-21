@@ -5,7 +5,7 @@ const ACCENT = "#e879f9";
 
 export function renderPlinko(root, ctx) {
   shell(root, {
-    title: "Plinko", icon: "🎯", accent: ACCENT,
+    title: "Plinko", icon: "🔻", accent: ACCENT,
     stage: `
       <div style="position:relative"><canvas id="pcanvas" style="width:100%;aspect-ratio:1/0.92;display:block"></canvas></div>
       <p class="msg" id="pmsg" style="margin:8px 0 14px">Drop the ball and watch where it lands</p>
@@ -28,7 +28,9 @@ export function renderPlinko(root, ctx) {
     canvas.width = r.width * dpr; canvas.height = r.height * dpr;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  window.addEventListener("resize", () => { size(); draw(null, -1); });
+  const onResize = () => { size(); draw(null, -1); };
+  window.addEventListener("resize", onResize);
+  ctx.onCleanup(() => { window.removeEventListener("resize", onResize); cancelAnimationFrame(anim); });
   size();
 
   const bucketColor = (m) => (m >= 10 ? "#ff5d6c" : m >= 2 ? "#ff8a3d" : m > 1 ? "#f5c451" : m === 1 ? "#8a97a8" : "#3b8ff0");

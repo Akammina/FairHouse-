@@ -56,13 +56,31 @@ export function renderMines(root, ctx) {
     const profit = Math.floor(round.stakeCents * mult) - round.stakeCents;
     $("mprofit").textContent = ctx.money(profit);
   }
-  function endRound() { round = null; setTimeout(() => { resetBoard(); setSetup(true); $("mmsg").textContent = ""; $("mmsg").className = "msg"; }, 1700); }
+  let resetTimer = 0;
+  function endRound() {
+    round = null;
+    ctx.state.activeMines = null;
+    resetTimer = setTimeout(() => { resetBoard(); setSetup(true); $("mmsg").textContent = ""; $("mmsg").className = "msg"; }, 1700);
+  }
+  ctx.onCleanup(() => clearTimeout(resetTimer));
+
+  // Resume an in-progress round after a reload or navigating away and back.
+  function resume(am) {
+    round = { roundId: am.roundId, mines: am.mines, stakeCents: am.stakeCents };
+    setSetup(false);
+    (am.revealed || []).forEach((i) => { revealed.add(i); tileEl(i).classList.add("safe"); tileEl(i).textContent = "💎"; });
+    [...grid.children].forEach((t, i) => (t.disabled = revealed.has(i)));
+    updateStats(am.multiplier || 1, revealed.size);
+    $("mmsg").textContent = `Resumed — ${am.mines} mines, ${revealed.size} safe. Cash out or keep going.`;
+    $("mmsg").className = "msg";
+  }
 
   $("mstart").addEventListener("click", async () => {
     $("mstart").disabled = true;
     try {
       const res = await ctx.api("/api/mines/start", { stake: Number($("mstake").value), mines: Number($("mcount").value) });
       round = { roundId: res.roundId, mines: res.mines, stakeCents: res.betCents };
+      ctx.state.activeMines = { roundId: res.roundId, mines: res.mines, revealed: [], multiplier: 1, stakeCents: res.betCents };
       ctx.applyResult(res);
       resetBoard(); setSetup(false);
       [...grid.children].forEach((t) => (t.disabled = false));
@@ -90,6 +108,7 @@ export function renderMines(root, ctx) {
       revealed.add(i);
       tileEl(i).classList.add("safe"); tileEl(i).textContent = "💎"; tileEl(i).disabled = true;
       updateStats(res.multiplier, res.revealedCount);
+      if (ctx.state.activeMines) { ctx.state.activeMines.revealed = [...revealed]; ctx.state.activeMines.multiplier = res.multiplier; }
       if (res.cashedOut) {
         revealAllMines(res.layout);
         $("mmsg").textContent = `Cleared the board! Won +${ctx.money(res.payoutCents - round.stakeCents)}`; $("mmsg").className = "msg win";
@@ -120,5 +139,6 @@ export function renderMines(root, ctx) {
     }
   });
 
-  setSetup(true);
+  if (ctx.state.activeMines && ctx.state.activeMines.roundId) resume(ctx.state.activeMines);
+  else setSetup(true);
 }
