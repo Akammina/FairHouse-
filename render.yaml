@@ -1,0 +1,13 @@
+# Render blueprint — deploy FairHouse as a free web service.
+# In Render: New ▸ Blueprint, point it at this repo, and it reads this file.
+services:
+  - type: web
+    name: fairhouse
+    runtime: node
+    plan: free
+    # --include=dev so TypeScript (a devDependency) is available to build.
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

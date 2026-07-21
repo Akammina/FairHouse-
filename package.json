@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "FairHouse — a provably-fair casino platform (dice, coinflip, limbo, mines)",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/server/index.js",
