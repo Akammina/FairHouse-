@@ -22,7 +22,18 @@ export function renderMemory(root, ctx) {
         <div class="stat"><span class="l">Pairs</span><span class="v" id="memPairs">—</span></div>
         <div class="stat"><span class="l">Win</span><span class="v" id="memWin">—</span></div>
       </div>
-      <div class="mem-grid" id="memGrid"></div>
+      <div class="mem-board">
+        <div class="mem-grid" id="memGrid"></div>
+        <div class="mem-over" id="memOver" hidden>
+          <div class="mem-over-card">
+            <div class="mem-over-emoji" id="memOverEmoji">🎉</div>
+            <div class="mem-over-title" id="memOverTitle"></div>
+            <div class="mem-over-sub" id="memOverSub"></div>
+            <button class="btn" id="memAgain" style="--accent:${ACCENT}">Play again</button>
+            <button class="mini" id="memMenu">Change bet</button>
+          </div>
+        </div>
+      </div>
       <div id="memSetup">
         <div class="fld"><span>Difficulty</span>
           <div class="pick-row">
@@ -50,6 +61,13 @@ export function renderMemory(root, ctx) {
   const setSetup = (on) => { $("memSetup").hidden = !on; };
   const faceHTML = (id) => `<span class="v">${faceForId[id].v}</span><span class="s">${faceForId[id].s}</span>`;
 
+  function setFace(el, id) {
+    const front = el.querySelector(".mcard-front");
+    front.innerHTML = faceHTML(id);
+    front.className = `mcard-face mcard-front ${faceForId[id].c}`;
+  }
+  function reveal(el, id) { setFace(el, id); el.classList.add("flipped"); ctx.sound.reveal(); }
+
   function buildBoard(tiles, cols) {
     grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     grid.innerHTML = "";
@@ -63,15 +81,8 @@ export function renderMemory(root, ctx) {
     });
   }
 
-  function reveal(el, id) {
-    const front = el.querySelector(".mcard-front");
-    front.innerHTML = faceHTML(id);
-    front.className = `mcard-face mcard-front ${faceForId[id].c}`;
-    el.classList.add("flipped");
-    ctx.sound.reveal();
-  }
-
-  $("memStart").addEventListener("click", async () => {
+  async function startGame() {
+    $("memOver").hidden = true;
     $("memStart").disabled = true;
     try {
       const res = await ctx.api("/api/memory/start", { stake: Number($("memStake").value), difficulty: diff });
@@ -87,11 +98,14 @@ export function renderMemory(root, ctx) {
       $("memMsg").className = "msg";
       setSetup(false);
     } catch (e) {
-      $("memMsg").textContent = e.message; $("memMsg").className = "msg lose";
+      $("memMsg").textContent = e.message; $("memMsg").className = "msg lose"; setSetup(true);
     } finally {
       $("memStart").disabled = false;
     }
-  });
+  }
+  $("memStart").addEventListener("click", startGame);
+  $("memAgain").addEventListener("click", startGame);
+  $("memMenu").addEventListener("click", () => { $("memOver").hidden = true; setSetup(true); });
 
   async function flip(i) {
     if (!round || lock) return;
@@ -104,7 +118,7 @@ export function renderMemory(root, ctx) {
       if (res.firstCard) { lock = false; return; } // first card of the turn — free to pick the second
 
       if (typeof res.movesLeft === "number") $("memLeft").textContent = res.movesLeft;
-      else if (res.busted || res.cleared) $("memLeft").textContent = Math.max(0, round.budget - res.moves);
+      else $("memLeft").textContent = Math.max(0, round.budget - res.moves);
 
       if (res.match) {
         cards[res.matched[0]].classList.add("matched");
@@ -129,24 +143,35 @@ export function renderMemory(root, ctx) {
     }
   }
 
+  function showEnd(won, title, sub) {
+    $("memOverEmoji").textContent = won ? "🎉" : "💥";
+    const t = $("memOverTitle"); t.textContent = title; t.className = "mem-over-title " + (won ? "win" : "lose");
+    $("memOverSub").textContent = sub;
+    $("memOver").hidden = false;
+  }
+
   function win(res) {
-    $("memMsg").textContent = `Cleared in ${res.moves} moves — won +${ctx.money(res.payoutCents - round.stakeCents)}! 🎉`;
-    $("memMsg").className = "msg win";
+    $("memMsg").textContent = ""; $("memMsg").className = "msg";
     ctx.sound.win();
     ctx.applyResult(res);
     const r = grid.getBoundingClientRect();
-    burst(r.left + r.width / 2, r.top + r.height / 2, 1.4);
+    burst(r.left + r.width / 2, r.top + r.height / 2, 1.5);
     pushRecent(ctx, "memory", `${round.pairs} pairs in ${res.moves} @${round.mult}×`, round.stakeCents, res.payoutCents, true, round.nonce, round.serverSeedHash, round.clientSeed);
-    round = null; setSetup(true);
+    showEnd(true, "You cleared the board!", `Won +${ctx.money(res.payoutCents - round.stakeCents)} · ${res.moves} moves`);
+    round = null;
   }
 
   function bust(res) {
-    $("memMsg").textContent = `Out of moves — lost ${ctx.money(round.stakeCents)}`;
-    $("memMsg").className = "msg lose";
+    // reveal what was left so you can see the board you missed
+    if (Array.isArray(res.deck)) res.deck.forEach((id, idx) => {
+      if (!cards[idx].classList.contains("matched")) { setFace(cards[idx], id); cards[idx].classList.add("flipped", "missed"); }
+    });
+    $("memMsg").textContent = ""; $("memMsg").className = "msg";
     ctx.sound.lose();
     ctx.applyResult(res);
     pushRecent(ctx, "memory", `${round.pairs} pairs, busted at ${res.moves} moves`, round.stakeCents, 0, false, round.nonce, round.serverSeedHash, round.clientSeed);
-    round = null; setSetup(true);
+    showEnd(false, "Out of moves", `Lost ${ctx.money(round.stakeCents)} · ${matchedCount}/${round.pairs} pairs found`);
+    round = null;
   }
 
   setSetup(true);

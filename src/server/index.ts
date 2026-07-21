@@ -336,12 +336,12 @@ app.post("/api/memory/flip", (req, res) =>
       const balance = credit(r.playerId, payout);
       recordBet(r.playerId, "memory", r.nonce, `${r.pairs} pairs cleared in ${r.moves} moves @${r.mult}×`, r.stakeCents, payout, true, r.serverSeedHash, r.clientSeed);
       memRounds.delete(String(req.body.roundId)); memActive.delete(r.playerId);
-      return { ...base, cleared: true, payoutCents: payout, balance };
+      return { ...base, cleared: true, payoutCents: payout, balance, deck: r.deck };
     }
     if (r.moves >= r.budget) {
       recordBet(r.playerId, "memory", r.nonce, `${r.pairs} pairs, out of moves after ${r.moves}`, r.stakeCents, 0, false, r.serverSeedHash, r.clientSeed);
       memRounds.delete(String(req.body.roundId)); memActive.delete(r.playerId);
-      return { ...base, busted: true, balance: getBalance(r.playerId) };
+      return { ...base, busted: true, balance: getBalance(r.playerId), deck: r.deck };
     }
     return { ...base, movesLeft: r.budget - r.moves };
   }),
