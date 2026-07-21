@@ -1,6 +1,7 @@
 import { hmacSha256Hex, sha256Hex, betHmac } from "/shared/provablyFair.js";
 import { diceRoll, limboResult, coinResult, rouletteNumber, rouletteColor, wheelSegment, wheelMultiplier, plinkoBucket, plinkoPath, plinkoMultiplier } from "/shared/games.js";
 import { money } from "./games/common.js";
+import { initBackground } from "./background.js";
 import { renderDice } from "./games/dice.js";
 import { renderCoinflip } from "./games/coinflip.js";
 import { renderLimbo } from "./games/limbo.js";
@@ -193,6 +194,7 @@ $("vRun").addEventListener("click", async () => {
 });
 
 // ---------- Init ----------
+initBackground();
 (async () => {
   try {
     const s = await api("/api/session", { playerId: localStorage.getItem("fairhouse_pid") });
