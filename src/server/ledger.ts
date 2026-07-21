@@ -143,6 +143,31 @@ export async function rotateSeed(playerId: string, newClientSeed?: string) {
   return { revealedServerSeed, revealedHash, ...sessionState(selectPlayer.get(playerId)!) };
 }
 
+/** Player performance, overall and broken down per game (pure SQL aggregation). */
+export function playerStats(playerId: string) {
+  const overall = db
+    .prepare(
+      `SELECT COUNT(*) AS rounds,
+              COALESCE(SUM(bet_cents), 0)    AS wagered,
+              COALESCE(SUM(payout_cents), 0) AS won,
+              COALESCE(SUM(win), 0)          AS wins,
+              COALESCE(MAX(payout_cents - bet_cents), 0) AS biggestWin
+       FROM bets WHERE player_id = ?`,
+    )
+    .get(playerId);
+  const byGame = db
+    .prepare(
+      `SELECT game,
+              COUNT(*) AS rounds,
+              COALESCE(SUM(bet_cents), 0)    AS wagered,
+              COALESCE(SUM(payout_cents), 0) AS won,
+              COALESCE(SUM(win), 0)          AS wins
+       FROM bets WHERE player_id = ? GROUP BY game ORDER BY rounds DESC`,
+    )
+    .all(playerId);
+  return { overall, byGame };
+}
+
 export function recentBets(playerId: string, limit = 20) {
   return db
     .prepare(

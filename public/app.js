@@ -12,6 +12,7 @@ import { renderPlinko } from "./games/plinko.js";
 import { renderRoulette } from "./games/roulette.js";
 import { renderWheel } from "./games/wheel.js";
 import { renderKeno } from "./games/keno.js";
+import { renderStats } from "./games/stats.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -72,7 +73,7 @@ document.addEventListener("pointerdown", (e) => {
 }, { passive: true });
 
 // ---------- Router ----------
-const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, limbo: renderLimbo, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno };
+const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, limbo: renderLimbo, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, stats: renderStats };
 function route() {
   cleanups.forEach((fn) => { try { fn(); } catch { /* ignore */ } }); // tear down the previous view
   cleanups = [];
@@ -104,7 +105,7 @@ function renderLobby(root) {
     <div class="game-grid">
       ${games.map((g) => `
         <a class="game-card" href="#/${g.key}" style="--card-accent:${g.accent}">
-          <div class="icon">${g.icon}</div>
+          <div class="icon icon-${g.key}">${g.icon}</div>
           <h3>${g.name}</h3>
           <p>${g.tag}</p>
           <div class="play">Play ${g.name} →</div>
