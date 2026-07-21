@@ -24,7 +24,7 @@ import {
 } from "../shared/games.js";
 import {
   ensureSession, getPlayer, getBalance, debitStake, credit, recordBet,
-  rotateSeed, recentBets, playerStats,
+  rotateSeed, recentBets,
 } from "./ledger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -53,12 +53,6 @@ app.post("/api/rotate", (req, res) =>
   wrap(res, async () => {
     requirePlayer(req.body?.playerId);
     return rotateSeed(String(req.body.playerId), req.body?.clientSeed ? String(req.body.clientSeed) : undefined);
-  }),
-);
-app.post("/api/stats", (req, res) =>
-  wrap(res, async () => {
-    const p = requirePlayer(req.body?.playerId);
-    return playerStats(p.id);
   }),
 );
 
