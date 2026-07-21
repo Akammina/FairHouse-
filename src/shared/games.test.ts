@@ -6,6 +6,10 @@ import {
   coinResult, COIN_MULTIPLIER,
   limboResult, limboWin,
   minesLayout, minesMultiplier, MINES_TILES,
+  plinkoPath, plinkoBucket, plinkoMultiplier, PLINKO_ROWS, PLINKO_MULTIPLIERS,
+  rouletteNumber, rouletteColor, roulettePayout,
+  wheelSegment, wheelMultiplier, WHEEL_SEGMENTS,
+  kenoDraw, kenoMultiplier, KENO_DRAW, KENO_POOL,
 } from "./games.js";
 
 // helper: deterministic pseudo-digests for distribution checks
@@ -60,4 +64,54 @@ test("mines multiplier grows with each safe reveal", () => {
   assert.ok(m1 > 1 && m2 > m1);
   // first safe pick with 3 mines ≈ (1-edge) * 25/22
   assert.ok(Math.abs(m1 - 0.99 * (25 / 22)) < 0.01);
+});
+
+test("plinko path has one bit per row and the bucket is the number of rights", () => {
+  const path = plinkoPath("0f1e2d3c4b5a6978");
+  assert.equal(path.length, PLINKO_ROWS);
+  assert.ok(path.every((b) => b === 0 || b === 1));
+  assert.equal(plinkoBucket([1, 0, 1, 1, 0]), 3);
+  assert.equal(plinkoMultiplier(0), PLINKO_MULTIPLIERS[0]); // edge bucket is the big one
+  assert.ok(plinkoMultiplier(PLINKO_ROWS / 2) < 1); // center bucket loses on average
+});
+
+test("plinko payout table keeps a house edge", () => {
+  // EV = Σ C(n,k)/2^n · mult[k] should be < 1
+  const n = PLINKO_ROWS;
+  const choose = (a: number, b: number) => { let r = 1; for (let i = 0; i < b; i++) r = (r * (a - i)) / (i + 1); return r; };
+  let ev = 0;
+  for (let k = 0; k <= n; k++) ev += (choose(n, k) / 2 ** n) * PLINKO_MULTIPLIERS[k];
+  assert.ok(ev > 0.9 && ev < 1.0, `plinko EV ${ev}`);
+});
+
+test("roulette number is 0–36 with correct colors and payouts", () => {
+  assert.equal(rouletteNumber("00000000000000"), 0);
+  assert.equal(rouletteColor(0), "green");
+  assert.equal(rouletteColor(1), "red");
+  assert.equal(rouletteColor(2), "black");
+  assert.equal(roulettePayout(17, { type: "straight", number: 17 }), 36);
+  assert.equal(roulettePayout(18, { type: "straight", number: 17 }), 0);
+  assert.equal(roulettePayout(0, { type: "red" }), 0); // zero loses even-money bets
+  assert.equal(roulettePayout(3, { type: "red" }), 2);
+  assert.equal(roulettePayout(20, { type: "dozen2" }), 3);
+});
+
+test("wheel lands on a segment and keeps a house edge", () => {
+  const seg = wheelSegment("ffffffffffffff");
+  assert.ok(seg >= 0 && seg < WHEEL_SEGMENTS.length);
+  assert.equal(wheelMultiplier(seg), WHEEL_SEGMENTS[seg]);
+  const ev = WHEEL_SEGMENTS.reduce((a, b) => a + b, 0) / WHEEL_SEGMENTS.length;
+  assert.ok(ev > 0.9 && ev < 1.0, `wheel EV ${ev}`);
+});
+
+test("keno draws 10 distinct numbers deterministically and scores hits", async () => {
+  const hmac = await sha256Hex("keno-seed");
+  const a = await kenoDraw(hmac);
+  const b = await kenoDraw(hmac);
+  assert.deepEqual(a, b);
+  assert.equal(a.length, KENO_DRAW);
+  assert.equal(new Set(a).size, KENO_DRAW);
+  assert.ok(a.every((n) => n >= 1 && n <= KENO_POOL));
+  assert.equal(kenoMultiplier(10, 10), 5000);
+  assert.equal(kenoMultiplier(2, 0), 0);
 });

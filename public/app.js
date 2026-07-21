@@ -1,10 +1,14 @@
 import { hmacSha256Hex } from "/shared/provablyFair.js";
-import { diceRoll, limboResult, coinResult } from "/shared/games.js";
+import { diceRoll, limboResult, coinResult, rouletteNumber, rouletteColor, wheelSegment, wheelMultiplier, plinkoBucket, plinkoPath, plinkoMultiplier } from "/shared/games.js";
 import { money } from "./games/common.js";
 import { renderDice } from "./games/dice.js";
 import { renderCoinflip } from "./games/coinflip.js";
 import { renderLimbo } from "./games/limbo.js";
 import { renderMines } from "./games/mines.js";
+import { renderPlinko } from "./games/plinko.js";
+import { renderRoulette } from "./games/roulette.js";
+import { renderWheel } from "./games/wheel.js";
+import { renderKeno } from "./games/keno.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -43,7 +47,7 @@ const ctx = {
 };
 
 // ---------- Router ----------
-const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, limbo: renderLimbo, mines: renderMines };
+const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, limbo: renderLimbo, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno };
 function route() {
   const key = location.hash.replace(/^#\/?/, "");
   document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("active", a.getAttribute("href") === `#/${key}`));
@@ -59,6 +63,10 @@ function renderLobby(root) {
     { key: "coinflip", icon: "🪙", name: "Coinflip", tag: "Heads or tails, double or nothing.", accent: "var(--coin)" },
     { key: "limbo", icon: "🚀", name: "Limbo", tag: "Set a multiplier and see if it hits.", accent: "var(--limbo)" },
     { key: "mines", icon: "💣", name: "Mines", tag: "Uncover gems, dodge the mines, cash out.", accent: "var(--mines)" },
+    { key: "plinko", icon: "🎯", name: "Plinko", tag: "Drop a ball into a multiplier bucket.", accent: "#e879f9" },
+    { key: "roulette", icon: "🎡", name: "Roulette", tag: "Bet a number or color, spin the wheel.", accent: "#ff5d6c" },
+    { key: "wheel", icon: "🎯", name: "Wheel", tag: "Spin for a multiplier segment.", accent: "#33d17f" },
+    { key: "keno", icon: "🔢", name: "Keno", tag: "Pick numbers and match the draw.", accent: "#3b8ff0" },
   ];
   root.innerHTML = `
     <div class="lobby-hero">
@@ -100,11 +108,15 @@ $("vRun").addEventListener("click", async () => {
   const s = $("vServer").value.trim(), c = $("vClient").value.trim(), n = Number($("vNonce").value);
   if (!s || !c || Number.isNaN(n)) { $("vOut").innerHTML = `<span style="color:var(--lose)">Fill in all three fields.</span>`; return; }
   const hmac = await hmacSha256Hex(s, `${c}:${n}`);
+  const rn = rouletteNumber(hmac);
   $("vOut").innerHTML =
     `hmac = <span class="ok">${hmac.slice(0, 24)}…</span><br>` +
-    `→ Dice roll: <span class="ok">${diceRoll(hmac).toFixed(2)}</span><br>` +
-    `→ Limbo: <span class="ok">${limboResult(hmac).toFixed(2)}×</span><br>` +
-    `→ Coinflip: <span class="ok">${coinResult(hmac)}</span>`;
+    `→ Dice: <span class="ok">${diceRoll(hmac).toFixed(2)}</span> &nbsp; ` +
+    `Limbo: <span class="ok">${limboResult(hmac).toFixed(2)}×</span> &nbsp; ` +
+    `Coin: <span class="ok">${coinResult(hmac)}</span><br>` +
+    `→ Roulette: <span class="ok">${rn} ${rouletteColor(rn)}</span> &nbsp; ` +
+    `Wheel: <span class="ok">${wheelMultiplier(wheelSegment(hmac))}×</span> &nbsp; ` +
+    `Plinko: <span class="ok">${plinkoMultiplier(plinkoBucket(plinkoPath(hmac)))}×</span>`;
 });
 
 // prefill verifier when opening, so it's one click to check the last bet

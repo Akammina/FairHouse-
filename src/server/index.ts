@@ -17,6 +17,10 @@ import {
   coinResult, COIN_MULTIPLIER, type Coin,
   limboResult, limboWin, LIMBO_TARGET_MIN, LIMBO_TARGET_MAX,
   minesLayout, minesMultiplier, MINES_TILES,
+  plinkoPath, plinkoBucket, plinkoMultiplier,
+  rouletteNumber, rouletteColor, roulettePayout, type RouletteBet,
+  wheelSegment, wheelMultiplier, WHEEL_SEGMENTS,
+  kenoDraw, kenoMultiplier, KENO_POOL, KENO_MAX_PICKS,
 } from "../shared/games.js";
 import {
   ensureSession, getPlayer, getBalance, debitStake, credit, recordBet,
@@ -102,6 +106,77 @@ app.post("/api/limbo/bet", (req, res) =>
     const balance = win ? credit(p.id, payout) : getBalance(p.id);
     recordBet(p.id, "limbo", p.nonce, `@${target}× → ${result}×`, bet, payout, win);
     return { game: "limbo", result, target, win, multiplier: target, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
+  }),
+);
+
+app.post("/api/plinko/bet", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    const bet = stakeCents(req.body?.stake);
+    if (!(bet > 0)) throw new Error("Invalid stake");
+    const path = plinkoPath(await betHmac(p.server_seed, p.client_seed, p.nonce));
+    const bucket = plinkoBucket(path);
+    const mult = plinkoMultiplier(bucket);
+    const payout = Math.floor(bet * mult);
+    debitStake(p.id, p.nonce, bet);
+    const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);
+    recordBet(p.id, "plinko", p.nonce, `bucket ${bucket} → ${mult}×`, bet, payout, payout > bet);
+    return { game: "plinko", path, bucket, multiplier: mult, win: payout > bet, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
+  }),
+);
+
+const ROULETTE_TYPES = ["straight", "red", "black", "odd", "even", "low", "high", "dozen1", "dozen2", "dozen3"];
+app.post("/api/roulette/bet", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    const bet = stakeCents(req.body?.stake);
+    const spec = req.body?.bet;
+    if (!(bet > 0)) throw new Error("Invalid stake");
+    if (!spec || !ROULETTE_TYPES.includes(spec.type)) throw new Error("Pick a bet");
+    if (spec.type === "straight" && !(Number.isInteger(spec.number) && spec.number >= 0 && spec.number <= 36)) throw new Error("Number 0–36");
+    const n = rouletteNumber(await betHmac(p.server_seed, p.client_seed, p.nonce));
+    const mult = roulettePayout(n, spec as RouletteBet);
+    const payout = Math.floor(bet * mult);
+    debitStake(p.id, p.nonce, bet);
+    const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);
+    const label = spec.type === "straight" ? `#${spec.number}` : spec.type;
+    recordBet(p.id, "roulette", p.nonce, `${label} → ${n} ${rouletteColor(n)}`, bet, payout, payout > 0);
+    return { game: "roulette", number: n, color: rouletteColor(n), bet: spec, multiplier: mult, win: payout > 0, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
+  }),
+);
+
+app.post("/api/wheel/bet", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    const bet = stakeCents(req.body?.stake);
+    if (!(bet > 0)) throw new Error("Invalid stake");
+    const seg = wheelSegment(await betHmac(p.server_seed, p.client_seed, p.nonce));
+    const mult = wheelMultiplier(seg);
+    const payout = Math.floor(bet * mult);
+    debitStake(p.id, p.nonce, bet);
+    const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);
+    recordBet(p.id, "wheel", p.nonce, `segment ${seg} → ${mult}×`, bet, payout, payout > bet);
+    return { game: "wheel", segment: seg, segments: WHEEL_SEGMENTS, multiplier: mult, win: payout > bet, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
+  }),
+);
+
+app.post("/api/keno/bet", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    const bet = stakeCents(req.body?.stake);
+    const picks = Array.isArray(req.body?.picks) ? req.body.picks.map(Number) : [];
+    if (!(bet > 0)) throw new Error("Invalid stake");
+    const unique = [...new Set(picks)];
+    if (unique.length !== picks.length || picks.length < 1 || picks.length > KENO_MAX_PICKS) throw new Error(`Pick 1–${KENO_MAX_PICKS} numbers`);
+    if (!picks.every((n: number) => Number.isInteger(n) && n >= 1 && n <= KENO_POOL)) throw new Error("Bad numbers");
+    const draw = await kenoDraw(await betHmac(p.server_seed, p.client_seed, p.nonce));
+    const hits = picks.filter((n: number) => draw.includes(n)).length;
+    const mult = kenoMultiplier(picks.length, hits);
+    const payout = Math.floor(bet * mult);
+    debitStake(p.id, p.nonce, bet);
+    const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);
+    recordBet(p.id, "keno", p.nonce, `${hits}/${picks.length} hits → ${mult}×`, bet, payout, payout > bet);
+    return { game: "keno", draw, picks, hits, multiplier: mult, win: payout > bet, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
   }),
 );
 

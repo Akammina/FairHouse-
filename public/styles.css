@@ -138,6 +138,23 @@ a { color: inherit; text-decoration: none; }
 .tile.mine { background: rgba(255, 93, 108, 0.16); border-color: var(--lose); }
 .tile.dim { opacity: 0.4; }
 
+/* Roulette bet chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-bet { flex: 1 1 28%; min-width: 74px; padding: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; }
+.chip-bet:hover { color: var(--ink); }
+.chip-bet.sel { border-color: var(--lose); color: var(--lose); background: rgba(255, 93, 108, 0.12); }
+
+/* Keno grid */
+.keno-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 12px; }
+.knum { aspect-ratio: 1; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); border-radius: 8px; font-family: var(--mono); font-weight: 700; font-size: 13px; cursor: pointer; transition: transform 0.08s; }
+.knum:hover { color: var(--ink); transform: translateY(-1px); }
+.knum.sel { background: rgba(59, 143, 240, 0.16); border-color: #3b8ff0; color: #9dc7ff; }
+.knum.drawn { background: var(--panel-3); border-color: var(--faint); color: var(--ink); }
+.knum.hit { background: rgba(51, 209, 127, 0.2); border-color: var(--win); color: var(--win); }
+.knum.miss { background: rgba(255, 93, 108, 0.14); border-color: var(--lose); color: var(--lose); opacity: 0.7; }
+.keno-bar { display: flex; align-items: center; justify-content: space-between; }
+.keno-count { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
 /* Modal */
 .modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(4, 7, 10, 0.7); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
 .modal-backdrop[hidden] { display: none; }
