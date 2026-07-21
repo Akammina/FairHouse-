@@ -45,4 +45,19 @@ export const Sound = {
   reveal() { tone({ freq: 760, type: "triangle", dur: 0.06, gain: 0.08, slideTo: 1180 }); },
   mine() { tone({ freq: 200, type: "sawtooth", dur: 0.38, gain: 0.16, slideTo: 55 }); },
   whoosh() { tone({ freq: 180, type: "sine", dur: 0.5, gain: 0.06, slideTo: 620 }); },
+  /**
+   * The ball clacking around a spinning wheel: ticks bunched at the start,
+   * spreading out as it decelerates (t ∝ progress²), fading as energy is lost,
+   * then a soft settle. `dur` matches the visual spin.
+   */
+  spin(dur = 4.8) {
+    if (muted) return;
+    const count = 58;
+    for (let i = 1; i <= count; i++) {
+      const p = i / count;
+      const when = Math.pow(p, 2.2) * dur;          // decelerating spacing
+      tone({ freq: 850 + Math.random() * 350, type: "square", dur: 0.016, gain: 0.055 * (1 - 0.6 * p), delay: when });
+    }
+    tone({ freq: 300, type: "sine", dur: 0.12, gain: 0.05, slideTo: 180, delay: dur });
+  },
 };

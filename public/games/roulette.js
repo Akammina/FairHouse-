@@ -91,7 +91,7 @@ export function renderRoulette(root, ctx) {
 
   function spinTo(n, done) {
     landed = -1;
-    ctx.sound.whoosh();
+    if (!reduce) ctx.sound.spin(4.8);
     const idx = ORDER.indexOf(n);
     const R = canvas.getBoundingClientRect().width / 2 - 13;
     const wheelFrom = rot;
