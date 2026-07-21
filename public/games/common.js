@@ -37,7 +37,12 @@ function item(ul, b, append) {
   li.innerHTML = `<span class="badge ${win ? "win" : "lose"}">${win ? "WIN" : "LOSE"}</span>
     <span style="color:var(--faint);flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.detail}</span>
     <span class="amt ${win ? "win" : "lose"}">${net}</span>`;
-  if (append) ul.appendChild(li); else ul.prepend(li);
+  if (append) {
+    ul.appendChild(li);
+  } else {
+    li.style.animation = "slideIn 0.3s ease"; // new bet slides in
+    ul.prepend(li);
+  }
   while (ul.children.length > 20) ul.lastChild.remove();
 }
 

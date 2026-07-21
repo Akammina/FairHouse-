@@ -2,6 +2,7 @@ import { hmacSha256Hex, sha256Hex, betHmac } from "/shared/provablyFair.js";
 import { diceRoll, limboResult, coinResult, rouletteNumber, rouletteColor, wheelSegment, wheelMultiplier, plinkoBucket, plinkoPath, plinkoMultiplier } from "/shared/games.js";
 import { money } from "./games/common.js";
 import { initBackground } from "./background.js";
+import { burst } from "./confetti.js";
 import { renderDice } from "./games/dice.js";
 import { renderCoinflip } from "./games/coinflip.js";
 import { renderLimbo } from "./games/limbo.js";
@@ -22,18 +23,30 @@ async function api(path, body) {
   return data;
 }
 
-let lastBalance = null;
+const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let lastBalance = null, balanceRaf = 0;
 function renderBalance() {
   const el = $("balance");
-  el.textContent = money(state.balance);
-  if (lastBalance !== null && state.balance !== lastBalance) {
-    el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
-    if (state.balance > lastBalance) {
-      el.style.color = "var(--win)";
-      setTimeout(() => (el.style.color = ""), 550);
-    }
+  const to = state.balance;
+  if (lastBalance === null || to === lastBalance || REDUCE) { el.textContent = money(to); lastBalance = to; return; }
+  const from = lastBalance;
+  el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
+  if (to > from) {
+    el.style.color = "var(--win)";
+    setTimeout(() => (el.style.color = ""), 650);
+    const r = el.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.bottom + 2, Math.min(1.7, 0.7 + (to - from) / 20000)); // 🎉 on a win
   }
-  lastBalance = state.balance;
+  cancelAnimationFrame(balanceRaf);
+  const start = performance.now(), dur = 520;
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / dur), eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = money(Math.round(from + (to - from) * eased));
+    if (t < 1) balanceRaf = requestAnimationFrame(step);
+    else el.textContent = money(to);
+  };
+  balanceRaf = requestAnimationFrame(step);
+  lastBalance = to;
 }
 
 let cleanups = [];
@@ -58,6 +71,7 @@ function route() {
   document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("active", a.getAttribute("href") === `#/${key}`));
   const view = $("view");
   view.innerHTML = "";
+  view.classList.remove("enter"); void view.offsetWidth; view.classList.add("enter"); // re-trigger the fade-in
   (routes[key] || renderLobby)(view, ctx);
 }
 window.addEventListener("hashchange", route);
