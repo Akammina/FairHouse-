@@ -97,6 +97,7 @@ export function renderMines(root, ctx) {
     try {
       const res = await ctx.api("/api/mines/reveal", { roundId: round.roundId, tile: i });
       if (res.mine) {
+        ctx.sound.mine();
         tileEl(i).classList.add("mine"); tileEl(i).textContent = "💣";
         revealAllMines(res.layout);
         $("mmsg").textContent = `Boom — lost ${ctx.money(round.stakeCents)}`; $("mmsg").className = "msg lose";
@@ -106,10 +107,12 @@ export function renderMines(root, ctx) {
         return;
       }
       revealed.add(i);
+      ctx.sound.reveal();
       tileEl(i).classList.add("safe"); tileEl(i).textContent = "💎"; tileEl(i).disabled = true;
       updateStats(res.multiplier, res.revealedCount);
       if (ctx.state.activeMines) { ctx.state.activeMines.revealed = [...revealed]; ctx.state.activeMines.multiplier = res.multiplier; }
       if (res.cashedOut) {
+        ctx.sound.cashout();
         revealAllMines(res.layout);
         $("mmsg").textContent = `Cleared the board! Won +${ctx.money(res.payoutCents - round.stakeCents)}`; $("mmsg").className = "msg win";
         ctx.applyResult(res);
@@ -126,6 +129,7 @@ export function renderMines(root, ctx) {
     $("mcash").disabled = true;
     try {
       const res = await ctx.api("/api/mines/cashout", { roundId: round.roundId });
+      ctx.sound.cashout();
       revealAllMines(res.layout);
       $("mmsg").textContent = `Cashed out @ ${res.multiplier.toFixed(2)}× — won +${ctx.money(res.payoutCents - round.stakeCents)}`;
       $("mmsg").className = "msg win";

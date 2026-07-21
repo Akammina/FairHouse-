@@ -87,6 +87,7 @@ export function renderPlinko(root, ctx) {
   draw(null, -1);
 
   function play(res, done) {
+    ctx.sound.whoosh();
     if (reduce) { draw(res.path, R, res.bucket); done(); return; }
     const dur = 1150, start = performance.now();
     cancelAnimationFrame(anim);

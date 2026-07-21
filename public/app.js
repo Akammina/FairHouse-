@@ -3,6 +3,7 @@ import { diceRoll, limboResult, coinResult, rouletteNumber, rouletteColor, wheel
 import { money } from "./games/common.js";
 import { initBackground } from "./background.js";
 import { burst } from "./confetti.js";
+import { Sound } from "./sound.js";
 import { renderDice } from "./games/dice.js";
 import { renderCoinflip } from "./games/coinflip.js";
 import { renderLimbo } from "./games/limbo.js";
@@ -54,13 +55,21 @@ const ctx = {
   api,
   money,
   state,
+  sound: Sound,
   onCleanup(fn) { cleanups.push(fn); },
   applyResult(res) {
     if (typeof res.balance === "number") { state.balance = res.balance; renderBalance(); }
     if (typeof res.nonce === "number") { state.nonce = res.nonce + 1; renderModal(); }
+    if (typeof res.win === "boolean") Sound[res.win ? "win" : "lose"]();
   },
   addRecent(entry) { state.recent.unshift(entry); },
 };
+
+// Global click feedback + lazy audio unlock (browsers need a gesture first).
+document.addEventListener("pointerdown", (e) => {
+  Sound.unlock();
+  if (e.target.closest("button, .game-card, .nav a, .knum, .chip-bet, .pick")) Sound.click();
+}, { passive: true });
 
 // ---------- Router ----------
 const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, limbo: renderLimbo, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno };
@@ -206,6 +215,11 @@ $("vRun").addEventListener("click", async () => {
     `Wheel: <span class="ok">${wheelMultiplier(wheelSegment(hmac))}×</span> &nbsp; ` +
     `Plinko: <span class="ok">${plinkoMultiplier(plinkoBucket(plinkoPath(hmac)))}×</span>`;
 });
+
+// ---------- Sound toggle ----------
+const soundBtn = $("soundBtn");
+if (Sound.muted) soundBtn.textContent = "🔇";
+soundBtn.addEventListener("click", () => { soundBtn.textContent = Sound.toggle() ? "🔇" : "🔊"; });
 
 // ---------- Init ----------
 initBackground();

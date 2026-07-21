@@ -71,6 +71,7 @@ export function renderWheel(root, ctx) {
 
   function spinTo(seg, done) {
     landed = -1;
+    ctx.sound.whoosh();
     const jitter = (Math.random() - 0.5) * step * 0.55;
     const targetAt = -Math.PI / 2 - (seg * step + step / 2) + jitter; // brings seg centre under the top pointer
     const from = rot;
