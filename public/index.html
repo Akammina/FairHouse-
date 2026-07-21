@@ -35,16 +35,26 @@
         <h2>Provably Fair</h2>
         <button id="fairClose" class="modal-close">✕</button>
       </div>
-      <p class="modal-hint">Every bet's outcome comes from HMAC-SHA256(server seed, your client seed : nonce). The server seed is committed as a hash before you play and revealed when you rotate — then you can recompute every result here.</p>
+      <ol class="pf-steps">
+        <li>Before each bet, the server locks a secret seed and shows only its <b>fingerprint</b> (a hash) — it can't change it afterward.</li>
+        <li>Your result comes from that seed + your client seed + a bet counter. Same inputs always give the same result.</li>
+        <li><b>Reveal</b> the seed and every bet is re-checked automatically — a green <b>✓</b> means it was fair.</li>
+      </ol>
 
-      <div class="kv"><span>Active server seed (hashed)</span><code id="mCommit" class="hash">—</code></div>
+      <div class="kv"><span>Server seed — locked (its hash)</span><code id="mCommit" class="hash">—</code></div>
       <label class="seed-field">Your client seed<input id="mClient" type="text" /></label>
-      <div class="kv"><span>Nonce (next bet)</span><b id="mNonce">0</b></div>
-      <button id="mRotate" class="rotate-btn">Rotate &amp; reveal current server seed</button>
+      <div class="kv"><span>Next bet uses nonce</span><b id="mNonce">0</b></div>
+
+      <div class="pf-verify-head">
+        <h3>Verify your bets</h3>
+        <button id="mRotate" class="rotate-btn small">🔓 Reveal &amp; verify</button>
+      </div>
+      <p id="pfHint" class="pf-hint"></p>
+      <ul id="betList" class="bet-list"></ul>
       <div id="mRevealed" class="revealed"></div>
 
-      <div class="verify">
-        <h3>Verify any bet</h3>
+      <details class="verify">
+        <summary>Advanced — verify manually</summary>
         <label>Server seed <input id="vServer" /></label>
         <div class="verify-row">
           <label>Client seed <input id="vClient" /></label>
@@ -52,7 +62,7 @@
         </div>
         <button id="vRun" class="verify-btn">Recompute outcomes</button>
         <div id="vOut" class="verify-out"></div>
-      </div>
+      </details>
     </div>
   </div>
 

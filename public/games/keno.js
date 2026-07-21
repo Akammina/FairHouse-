@@ -77,7 +77,7 @@ export function renderKeno(root, ctx) {
         : `${res.hits}/${res.picks.length} hits — ${res.multiplier}× — lost ${ctx.money(res.betCents)}`;
       $("kmsg").className = "msg " + (res.win ? "win" : "lose");
       ctx.applyResult(res);
-      pushRecent(ctx, "keno", `${res.hits}/${res.picks.length} → ${res.multiplier}×`, res.betCents, res.payoutCents, res.win);
+      pushRecent(ctx, "keno", `${res.hits}/${res.picks.length} → ${res.multiplier}×`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);
     } catch (e) {
       $("kmsg").textContent = e.message; $("kmsg").className = "msg lose";
     } finally {

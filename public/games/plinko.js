@@ -106,7 +106,7 @@ export function renderPlinko(root, ctx) {
         $("pmsg").textContent = `Landed on ${res.multiplier}× — ${res.payoutCents > res.betCents ? "won +" + ctx.money(res.payoutCents - res.betCents) : "returned " + ctx.money(res.payoutCents)}`;
         $("pmsg").className = "msg " + (res.win ? "win" : "lose");
         ctx.applyResult(res);
-        pushRecent(ctx, "plinko", `bucket ${res.bucket} → ${res.multiplier}×`, res.betCents, res.payoutCents, res.win);
+        pushRecent(ctx, "plinko", `bucket ${res.bucket} → ${res.multiplier}×`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);
         $("pdrop").disabled = false;
       });
     } catch (e) {

@@ -27,15 +27,17 @@ db.exec(`
     created_at       INTEGER NOT NULL
   );
   CREATE TABLE IF NOT EXISTS bets (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_id    TEXT NOT NULL,
-    game         TEXT NOT NULL,
-    nonce        INTEGER NOT NULL,
-    detail       TEXT NOT NULL,        -- short human summary, e.g. "under 50 → 42.10"
-    bet_cents    INTEGER NOT NULL,
-    payout_cents INTEGER NOT NULL,
-    win          INTEGER NOT NULL,
-    created_at   INTEGER NOT NULL
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id        TEXT NOT NULL,
+    game             TEXT NOT NULL,
+    nonce            INTEGER NOT NULL,
+    detail           TEXT NOT NULL,        -- short human summary, e.g. "under 50 → 42.10"
+    bet_cents        INTEGER NOT NULL,
+    payout_cents     INTEGER NOT NULL,
+    win              INTEGER NOT NULL,
+    server_seed_hash TEXT NOT NULL DEFAULT '',  -- which committed seed this bet used
+    client_seed      TEXT NOT NULL DEFAULT '',  -- and the client seed at the time
+    created_at       INTEGER NOT NULL
   );
 `);
 
@@ -89,8 +91,8 @@ const bumpNonceStake = db.prepare(
 );
 const adjustBalance = db.prepare("UPDATE players SET balance = balance + ? WHERE id = ?");
 const insertBet = db.prepare(
-  `INSERT INTO bets (player_id, game, nonce, detail, bet_cents, payout_cents, win, created_at)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  `INSERT INTO bets (player_id, game, nonce, detail, bet_cents, payout_cents, win, server_seed_hash, client_seed, created_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 /**
@@ -121,8 +123,10 @@ export function recordBet(
   betCents: number,
   payoutCents: number,
   win: boolean,
+  serverSeedHash: string,
+  clientSeed: string,
 ): void {
-  insertBet.run(playerId, game, nonce, detail, betCents, payoutCents, win ? 1 : 0, Date.now());
+  insertBet.run(playerId, game, nonce, detail, betCents, payoutCents, win ? 1 : 0, serverSeedHash, clientSeed, Date.now());
 }
 
 export async function rotateSeed(playerId: string, newClientSeed?: string) {
@@ -142,7 +146,7 @@ export async function rotateSeed(playerId: string, newClientSeed?: string) {
 export function recentBets(playerId: string, limit = 20) {
   return db
     .prepare(
-      `SELECT game, nonce, detail, bet_cents, payout_cents, win
+      `SELECT game, nonce, detail, bet_cents, payout_cents, win, server_seed_hash, client_seed
        FROM bets WHERE player_id = ? ORDER BY id DESC LIMIT ?`,
     )
     .all(playerId, limit);

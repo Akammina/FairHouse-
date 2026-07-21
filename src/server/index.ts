@@ -70,7 +70,7 @@ app.post("/api/dice/bet", (req, res) =>
     const payout = win ? Math.floor(bet * mult) : 0;
     debitStake(p.id, p.nonce, bet);
     const balance = win ? credit(p.id, payout) : getBalance(p.id);
-    recordBet(p.id, "dice", p.nonce, `under ${target} → ${roll.toFixed(2)}`, bet, payout, win);
+    recordBet(p.id, "dice", p.nonce, `under ${target} → ${roll.toFixed(2)}`, bet, payout, win, p.server_seed_hash, p.client_seed);
     return { game: "dice", roll, target, win, multiplier: mult, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
   }),
 );
@@ -87,7 +87,7 @@ app.post("/api/coinflip/bet", (req, res) =>
     const payout = win ? Math.floor(bet * COIN_MULTIPLIER) : 0;
     debitStake(p.id, p.nonce, bet);
     const balance = win ? credit(p.id, payout) : getBalance(p.id);
-    recordBet(p.id, "coinflip", p.nonce, `${side} → ${result}`, bet, payout, win);
+    recordBet(p.id, "coinflip", p.nonce, `${side} → ${result}`, bet, payout, win, p.server_seed_hash, p.client_seed);
     return { game: "coinflip", result, side, win, multiplier: COIN_MULTIPLIER, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
   }),
 );
@@ -104,7 +104,7 @@ app.post("/api/limbo/bet", (req, res) =>
     const payout = win ? Math.floor(bet * target) : 0;
     debitStake(p.id, p.nonce, bet);
     const balance = win ? credit(p.id, payout) : getBalance(p.id);
-    recordBet(p.id, "limbo", p.nonce, `@${target}× → ${result}×`, bet, payout, win);
+    recordBet(p.id, "limbo", p.nonce, `@${target}× → ${result}×`, bet, payout, win, p.server_seed_hash, p.client_seed);
     return { game: "limbo", result, target, win, multiplier: target, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
   }),
 );
@@ -120,7 +120,7 @@ app.post("/api/plinko/bet", (req, res) =>
     const payout = Math.floor(bet * mult);
     debitStake(p.id, p.nonce, bet);
     const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);
-    recordBet(p.id, "plinko", p.nonce, `bucket ${bucket} → ${mult}×`, bet, payout, payout > bet);
+    recordBet(p.id, "plinko", p.nonce, `bucket ${bucket} → ${mult}×`, bet, payout, payout > bet, p.server_seed_hash, p.client_seed);
     return { game: "plinko", path, bucket, multiplier: mult, win: payout > bet, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
   }),
 );
@@ -140,7 +140,7 @@ app.post("/api/roulette/bet", (req, res) =>
     debitStake(p.id, p.nonce, bet);
     const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);
     const label = spec.type === "straight" ? `#${spec.number}` : spec.type;
-    recordBet(p.id, "roulette", p.nonce, `${label} → ${n} ${rouletteColor(n)}`, bet, payout, payout > 0);
+    recordBet(p.id, "roulette", p.nonce, `${label} → ${n} ${rouletteColor(n)}`, bet, payout, payout > 0, p.server_seed_hash, p.client_seed);
     return { game: "roulette", number: n, color: rouletteColor(n), bet: spec, multiplier: mult, win: payout > 0, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
   }),
 );
@@ -155,7 +155,7 @@ app.post("/api/wheel/bet", (req, res) =>
     const payout = Math.floor(bet * mult);
     debitStake(p.id, p.nonce, bet);
     const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);
-    recordBet(p.id, "wheel", p.nonce, `segment ${seg} → ${mult}×`, bet, payout, payout > bet);
+    recordBet(p.id, "wheel", p.nonce, `segment ${seg} → ${mult}×`, bet, payout, payout > bet, p.server_seed_hash, p.client_seed);
     return { game: "wheel", segment: seg, segments: WHEEL_SEGMENTS, multiplier: mult, win: payout > bet, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
   }),
 );
@@ -175,7 +175,7 @@ app.post("/api/keno/bet", (req, res) =>
     const payout = Math.floor(bet * mult);
     debitStake(p.id, p.nonce, bet);
     const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);
-    recordBet(p.id, "keno", p.nonce, `${hits}/${picks.length} hits → ${mult}×`, bet, payout, payout > bet);
+    recordBet(p.id, "keno", p.nonce, `${hits}/${picks.length} hits → ${mult}×`, bet, payout, payout > bet, p.server_seed_hash, p.client_seed);
     return { game: "keno", draw, picks, hits, multiplier: mult, win: payout > bet, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
   }),
 );
@@ -183,7 +183,7 @@ app.post("/api/keno/bet", (req, res) =>
 // ---------- Mines (stateful round) ----------
 interface MinesRound {
   playerId: string; stakeCents: number; mines: number; nonce: number;
-  layout: Set<number>; revealed: number[];
+  layout: Set<number>; revealed: number[]; serverSeedHash: string; clientSeed: string;
 }
 const rounds = new Map<string, MinesRound>();
 const activeByPlayer = new Map<string, string>();
@@ -199,9 +199,9 @@ app.post("/api/mines/start", (req, res) =>
     debitStake(p.id, p.nonce, bet); // reserve stake + advance nonce
     const layout = await minesLayout(await betHmac(p.server_seed, p.client_seed, p.nonce), mines);
     const roundId = randomBytes(8).toString("hex");
-    rounds.set(roundId, { playerId: p.id, stakeCents: bet, mines, nonce: p.nonce, layout: new Set(layout), revealed: [] });
+    rounds.set(roundId, { playerId: p.id, stakeCents: bet, mines, nonce: p.nonce, layout: new Set(layout), revealed: [], serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed });
     activeByPlayer.set(p.id, roundId);
-    return { roundId, mines, tiles: MINES_TILES, betCents: bet, balance: getBalance(p.id), nonce: p.nonce };
+    return { roundId, mines, tiles: MINES_TILES, betCents: bet, balance: getBalance(p.id), nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
   }),
 );
 
@@ -214,7 +214,7 @@ app.post("/api/mines/reveal", (req, res) =>
     if (round.revealed.includes(tile)) throw new Error("Already revealed");
 
     if (round.layout.has(tile)) {
-      recordBet(round.playerId, "mines", round.nonce, `${round.mines} mines, hit after ${round.revealed.length} safe`, round.stakeCents, 0, false);
+      recordBet(round.playerId, "mines", round.nonce, `${round.mines} mines, hit after ${round.revealed.length} safe`, round.stakeCents, 0, false, round.serverSeedHash, round.clientSeed);
       endRound(String(req.body.roundId), round.playerId);
       return { mine: true, tile, layout: [...round.layout], multiplier: 0, balance: getBalance(round.playerId) };
     }
@@ -224,7 +224,7 @@ app.post("/api/mines/reveal", (req, res) =>
     if (round.revealed.length === safeTotal) {
       const payout = Math.floor(round.stakeCents * mult);
       const balance = credit(round.playerId, payout);
-      recordBet(round.playerId, "mines", round.nonce, `${round.mines} mines, cleared all @${mult}×`, round.stakeCents, payout, true);
+      recordBet(round.playerId, "mines", round.nonce, `${round.mines} mines, cleared all @${mult}×`, round.stakeCents, payout, true, round.serverSeedHash, round.clientSeed);
       endRound(String(req.body.roundId), round.playerId);
       return { mine: false, tile, revealedCount: round.revealed.length, multiplier: mult, cashedOut: true, payoutCents: payout, balance, layout: [...round.layout] };
     }
@@ -240,7 +240,7 @@ app.post("/api/mines/cashout", (req, res) =>
     const mult = minesMultiplier(round.revealed.length, round.mines);
     const payout = Math.floor(round.stakeCents * mult);
     const balance = credit(round.playerId, payout);
-    recordBet(round.playerId, "mines", round.nonce, `${round.mines} mines, cashed ${round.revealed.length} safe @${mult}×`, round.stakeCents, payout, true);
+    recordBet(round.playerId, "mines", round.nonce, `${round.mines} mines, cashed ${round.revealed.length} safe @${mult}×`, round.stakeCents, payout, true, round.serverSeedHash, round.clientSeed);
     endRound(String(req.body.roundId), round.playerId);
     return { payoutCents: payout, multiplier: mult, balance, layout: [...round.layout] };
   }),
@@ -263,6 +263,9 @@ function activeMinesFor(playerId: string) {
     revealed: r.revealed,
     multiplier: minesMultiplier(r.revealed.length, r.mines),
     stakeCents: r.stakeCents,
+    nonce: r.nonce,
+    serverSeedHash: r.serverSeedHash,
+    clientSeed: r.clientSeed,
   };
 }
 

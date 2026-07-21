@@ -88,7 +88,7 @@ export function renderLimbo(root, ctx) {
         $("lsub").className = "limbo-sub " + (res.win ? "win" : "lose");
         addPill(res.result, res.win);
         ctx.applyResult(res);
-        pushRecent(ctx, "limbo", `@${res.target}× → ${res.result.toFixed(2)}×`, res.betCents, res.payoutCents, res.win);
+        pushRecent(ctx, "limbo", `@${res.target}× → ${res.result.toFixed(2)}×`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);
         $("lbet").disabled = false;
       });
     } catch (e) {

@@ -66,7 +66,7 @@ export function renderMines(root, ctx) {
 
   // Resume an in-progress round after a reload or navigating away and back.
   function resume(am) {
-    round = { roundId: am.roundId, mines: am.mines, stakeCents: am.stakeCents };
+    round = { roundId: am.roundId, mines: am.mines, stakeCents: am.stakeCents, nonce: am.nonce, serverSeedHash: am.serverSeedHash, clientSeed: am.clientSeed };
     setSetup(false);
     (am.revealed || []).forEach((i) => { revealed.add(i); tileEl(i).classList.add("safe"); tileEl(i).textContent = "💎"; });
     [...grid.children].forEach((t, i) => (t.disabled = revealed.has(i)));
@@ -79,8 +79,8 @@ export function renderMines(root, ctx) {
     $("mstart").disabled = true;
     try {
       const res = await ctx.api("/api/mines/start", { stake: Number($("mstake").value), mines: Number($("mcount").value) });
-      round = { roundId: res.roundId, mines: res.mines, stakeCents: res.betCents };
-      ctx.state.activeMines = { roundId: res.roundId, mines: res.mines, revealed: [], multiplier: 1, stakeCents: res.betCents };
+      round = { roundId: res.roundId, mines: res.mines, stakeCents: res.betCents, nonce: res.nonce, serverSeedHash: res.serverSeedHash, clientSeed: res.clientSeed };
+      ctx.state.activeMines = { roundId: res.roundId, mines: res.mines, revealed: [], multiplier: 1, stakeCents: res.betCents, nonce: res.nonce, serverSeedHash: res.serverSeedHash, clientSeed: res.clientSeed };
       ctx.applyResult(res);
       resetBoard(); setSetup(false);
       [...grid.children].forEach((t) => (t.disabled = false));
@@ -101,7 +101,7 @@ export function renderMines(root, ctx) {
         revealAllMines(res.layout);
         $("mmsg").textContent = `Boom — lost ${ctx.money(round.stakeCents)}`; $("mmsg").className = "msg lose";
         ctx.applyResult(res);
-        pushRecent(ctx, "mines", `${round.mines} mines, hit after ${revealed.size} safe`, round.stakeCents, 0, false);
+        pushRecent(ctx, "mines", `${round.mines} mines, hit after ${revealed.size} safe`, round.stakeCents, 0, false, round.nonce, round.serverSeedHash, round.clientSeed);
         endRound();
         return;
       }
@@ -113,7 +113,7 @@ export function renderMines(root, ctx) {
         revealAllMines(res.layout);
         $("mmsg").textContent = `Cleared the board! Won +${ctx.money(res.payoutCents - round.stakeCents)}`; $("mmsg").className = "msg win";
         ctx.applyResult(res);
-        pushRecent(ctx, "mines", `${round.mines} mines, cleared all @${res.multiplier}×`, round.stakeCents, res.payoutCents, true);
+        pushRecent(ctx, "mines", `${round.mines} mines, cleared all @${res.multiplier}×`, round.stakeCents, res.payoutCents, true, round.nonce, round.serverSeedHash, round.clientSeed);
         endRound();
       }
     } catch (e) {
@@ -130,7 +130,7 @@ export function renderMines(root, ctx) {
       $("mmsg").textContent = `Cashed out @ ${res.multiplier.toFixed(2)}× — won +${ctx.money(res.payoutCents - round.stakeCents)}`;
       $("mmsg").className = "msg win";
       ctx.applyResult(res);
-      pushRecent(ctx, "mines", `${round.mines} mines, cashed ${revealed.size} safe @${res.multiplier}×`, round.stakeCents, res.payoutCents, true);
+      pushRecent(ctx, "mines", `${round.mines} mines, cashed ${revealed.size} safe @${res.multiplier}×`, round.stakeCents, res.payoutCents, true, round.nonce, round.serverSeedHash, round.clientSeed);
       endRound();
     } catch (e) {
       $("mmsg").textContent = e.message; $("mmsg").className = "msg lose";

@@ -141,7 +141,7 @@ export function renderRoulette(root, ctx) {
         $("rmsg").className = "msg " + (res.win ? "win" : "lose");
         ctx.applyResult(res);
         const label = res.bet.type === "straight" ? `#${res.bet.number}` : res.bet.type;
-        pushRecent(ctx, "roulette", `${label} → ${res.number} ${res.color}`, res.betCents, res.payoutCents, res.win);
+        pushRecent(ctx, "roulette", `${label} → ${res.number} ${res.color}`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);
         spinning = false; $("rspin").disabled = false;
       });
     } catch (e) {

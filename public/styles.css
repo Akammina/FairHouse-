@@ -170,6 +170,26 @@ a { color: inherit; text-decoration: none; }
 .modal-head h2 { margin: 0; font-size: 18px; }
 .modal-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
 .modal-hint { color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.pf-steps { margin: 8px 0 16px; padding-left: 20px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.pf-steps li { margin-bottom: 6px; }
+.pf-steps b { color: var(--ink); }
+.pf-verify-head { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }
+.pf-verify-head h3 { margin: 0; font-size: 14px; }
+.rotate-btn.small { width: auto; margin: 0; padding: 8px 12px; font-size: 12.5px; }
+.pf-hint { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 8px 0 10px; }
+.pf-hint b { color: var(--ink); }
+.bet-list { list-style: none; margin: 0; padding: 0; max-height: 230px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; }
+.bl-empty { padding: 16px; color: var(--faint); font-size: 12.5px; text-align: center; }
+.bl-row { display: grid; grid-template-columns: 84px 40px 1fr auto; gap: 8px; align-items: center; padding: 9px 12px; border-top: 1px solid var(--line); cursor: pointer; font-size: 12px; }
+.bl-row:first-child { border-top: none; }
+.bl-row:hover { background: var(--panel-2); }
+.bl-game { text-transform: capitalize; color: var(--ink); font-weight: 600; }
+.bl-nonce { font-family: var(--mono); color: var(--faint); }
+.bl-detail { font-family: var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bl-status { font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+.st-ok { color: var(--win); font-weight: 700; }
+.st-locked { color: var(--faint); }
+.st-bad { color: var(--lose); font-weight: 700; }
 .kv { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 12px; }
 .kv span { color: var(--faint); }
 .hash { font-family: var(--mono); font-size: 11px; color: var(--muted); max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

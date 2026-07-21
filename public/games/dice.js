@@ -44,7 +44,7 @@ export function renderDice(root, ctx) {
         : `Rolled ${res.roll.toFixed(2)} — lost ${ctx.money(res.betCents)}`;
       $("dmsg").className = "msg " + (res.win ? "win" : "lose");
       ctx.applyResult(res);
-      pushRecent(ctx, "dice", `under ${res.target} → ${res.roll.toFixed(2)}`, res.betCents, res.payoutCents, res.win);
+      pushRecent(ctx, "dice", `under ${res.target} → ${res.roll.toFixed(2)}`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);
     } catch (e) {
       $("dmsg").textContent = e.message; $("dmsg").className = "msg lose";
     } finally {

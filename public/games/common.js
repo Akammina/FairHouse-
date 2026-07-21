@@ -20,8 +20,11 @@ export function renderRecent(ctx, gameKey) {
   ctx.state.recent.filter((b) => b.game === gameKey).slice(0, 20).forEach((b) => item(ul, b, true));
 }
 
-export function pushRecent(ctx, gameKey, detail, betCents, payoutCents, win) {
-  const entry = { game: gameKey, detail, bet_cents: betCents, payout_cents: payoutCents, win: win ? 1 : 0 };
+export function pushRecent(ctx, gameKey, detail, betCents, payoutCents, win, nonce, serverSeedHash, clientSeed) {
+  const entry = {
+    game: gameKey, detail, bet_cents: betCents, payout_cents: payoutCents, win: win ? 1 : 0,
+    nonce, server_seed_hash: serverSeedHash, client_seed: clientSeed,
+  };
   ctx.state.recent.unshift(entry);
   const ul = document.getElementById("recentList");
   if (ul) item(ul, entry, false);

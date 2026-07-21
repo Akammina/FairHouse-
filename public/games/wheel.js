@@ -101,7 +101,7 @@ export function renderWheel(root, ctx) {
           : `Landed 0× — lost ${ctx.money(res.betCents)}`;
         $("wmsg").className = "msg " + (res.win ? "win" : "lose");
         ctx.applyResult(res);
-        pushRecent(ctx, "wheel", `→ ${res.multiplier}×`, res.betCents, res.payoutCents, res.win);
+        pushRecent(ctx, "wheel", `segment ${res.segment} → ${res.multiplier}×`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);
         spinning = false; $("wspin").disabled = false;
       });
     } catch (e) {
