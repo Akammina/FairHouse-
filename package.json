@@ -1,0 +1,22 @@
+{
+  "name": "fairhouse",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "FairHouse — a provably-fair casino platform (dice, coinflip, limbo, mines)",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server/index.js",
+    "dev": "tsc && node dist/server/index.js",
+    "test": "tsc && node --test \"dist/**/*.test.js\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FairHouse — provably-fair casino</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/"><span class="logo">♠ FAIRHOUSE</span><span class="tag">provably fair</span></a>
+    <nav class="nav" id="nav">
+      <a href="#/">Lobby</a>
+      <a href="#/dice">Dice</a>
+      <a href="#/coinflip">Coinflip</a>
+      <a href="#/limbo">Limbo</a>
+      <a href="#/mines">Mines</a>
+    </nav>
+    <div class="top-right">
+      <button id="fairBtn" class="fair-btn">🔒 Provably Fair</button>
+      <div class="wallet"><span class="wallet-label">Balance</span><span id="balance" class="wallet-amount">—</span></div>
+    </div>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <!-- Provably-fair modal -->
+  <div id="fairModal" class="modal-backdrop" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Provably Fair</h2>
+        <button id="fairClose" class="modal-close">✕</button>
+      </div>
+      <p class="modal-hint">Every bet's outcome comes from HMAC-SHA256(server seed, your client seed : nonce). The server seed is committed as a hash before you play and revealed when you rotate — then you can recompute every result here.</p>
+
+      <div class="kv"><span>Active server seed (hashed)</span><code id="mCommit" class="hash">—</code></div>
+      <label class="seed-field">Your client seed<input id="mClient" type="text" /></label>
+      <div class="kv"><span>Nonce (next bet)</span><b id="mNonce">0</b></div>
+      <button id="mRotate" class="rotate-btn">Rotate &amp; reveal current server seed</button>
+      <div id="mRevealed" class="revealed"></div>
+
+      <div class="verify">
+        <h3>Verify any bet</h3>
+        <label>Server seed <input id="vServer" /></label>
+        <div class="verify-row">
+          <label>Client seed <input id="vClient" /></label>
+          <label>Nonce <input id="vNonce" type="number" /></label>
+        </div>
+        <button id="vRun" class="verify-btn">Recompute outcomes</button>
+        <div id="vOut" class="verify-out"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
