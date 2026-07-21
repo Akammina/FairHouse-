@@ -10,7 +10,8 @@ const OUTCOMES = [
   { type: "low", label: "1–18" }, { type: "high", label: "19–36" },
   { type: "dozen1", label: "1st 12" }, { type: "dozen2", label: "2nd 12" }, { type: "dozen3", label: "3rd 12" },
 ];
-const pocketFill = (n) => (n === 0 ? "#2fa956" : ROULETTE_RED.has(n) ? "#d83a48" : "#1b232e");
+const BLACK = "#2c333f";
+const pocketFill = (n) => (n === 0 ? "#2fa956" : ROULETTE_RED.has(n) ? "#d83a48" : BLACK);
 
 export function renderRoulette(root, ctx) {
   shell(root, {
@@ -47,45 +48,51 @@ export function renderRoulette(root, ctx) {
   size();
 
   function draw() {
-    const r = canvas.getBoundingClientRect(), W = r.width, cx = W / 2, cy = W / 2, R = W / 2 - 6;
+    const r = canvas.getBoundingClientRect(), W = r.width, cx = W / 2, cy = W / 2, R = W / 2 - 13;
     g.clearRect(0, 0, W, W);
-    g.beginPath(); g.arc(cx, cy, R + 3, 0, TAU); g.fillStyle = "#0a0e12"; g.fill();
+    // gold rim frame
+    g.beginPath(); g.arc(cx, cy, R + 9, 0, TAU); g.fillStyle = "#caa24c"; g.fill();
+    g.beginPath(); g.arc(cx, cy, R + 9, 0, TAU); g.strokeStyle = "#7c5f27"; g.lineWidth = 2; g.stroke();
     for (let i = 0; i < 37; i++) {
       const n = ORDER[i], a0 = rot + i * step, a1 = a0 + step, isWin = landed >= 0 && n === landed;
       g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, a0, a1); g.closePath();
       g.fillStyle = pocketFill(n);
-      if (isWin) { g.shadowColor = "#fff"; g.shadowBlur = 20; }
+      if (isWin) { g.shadowColor = "#fff"; g.shadowBlur = 22; }
       g.fill(); g.shadowBlur = 0;
-      g.strokeStyle = "rgba(0,0,0,0.5)"; g.lineWidth = 1; g.stroke();
+      g.strokeStyle = "#0a0e12"; g.lineWidth = 1.5; g.stroke(); // fret line between pockets
+      if (isWin) { g.strokeStyle = "#fff"; g.lineWidth = 2; g.stroke(); }
       g.save(); g.translate(cx, cy); g.rotate(a0 + step / 2);
-      g.fillStyle = isWin ? "#ffe" : "#fff"; g.font = `${isWin ? 800 : 700} 10px ui-monospace, monospace`; g.textAlign = "right"; g.textBaseline = "middle";
-      g.fillText(String(n), R - 5, 0); g.restore();
+      g.fillStyle = "#fff"; g.font = `${isWin ? 800 : 700} 11px ui-monospace, monospace`; g.textAlign = "right"; g.textBaseline = "middle";
+      g.fillText(String(n), R - 6, 0); g.restore();
     }
     // ball
     if (ballR > 0) {
       const bx = cx + Math.cos(ballAngle) * ballR, by = cy + Math.sin(ballAngle) * ballR;
-      g.fillStyle = "#f4f6fb"; g.shadowColor = "#fff"; g.shadowBlur = 8;
-      g.beginPath(); g.arc(bx, by, 5, 0, TAU); g.fill(); g.shadowBlur = 0;
+      g.fillStyle = "#f4f6fb"; g.shadowColor = "#fff"; g.shadowBlur = 9;
+      g.beginPath(); g.arc(bx, by, 5.5, 0, TAU); g.fill(); g.shadowBlur = 0;
     }
     // hub with result
     g.beginPath(); g.arc(cx, cy, R * 0.5, 0, TAU); g.fillStyle = "#0d1117"; g.fill();
-    g.strokeStyle = "#2a323f"; g.lineWidth = 2; g.stroke();
+    g.strokeStyle = "#caa24c"; g.lineWidth = 2; g.stroke();
     if (landed >= 0) {
-      g.fillStyle = pocketFill(landed) === "#1b232e" ? "#c7d0dc" : pocketFill(landed);
-      g.font = "800 34px ui-monospace, monospace"; g.textAlign = "center"; g.textBaseline = "middle";
+      const c = rouletteColor(landed);
+      g.fillStyle = c === "red" ? "#ff5d6c" : c === "green" ? "#33d17f" : "#c7d0dc";
+      g.font = "800 36px ui-monospace, monospace"; g.textAlign = "center"; g.textBaseline = "middle";
       g.fillText(String(landed), cx, cy - 6);
       g.fillStyle = "#8a97a8"; g.font = "700 11px sans-serif";
-      g.fillText(rouletteColor(landed).toUpperCase(), cx, cy + 18);
+      g.fillText(c.toUpperCase(), cx, cy + 18);
     }
-    // top pointer
-    g.fillStyle = ACCENT; g.beginPath(); g.moveTo(cx, 6); g.lineTo(cx - 10, -14); g.lineTo(cx + 10, -14); g.closePath(); g.fill();
+    // pointer sits on the rim, pointing inward at the top pocket
+    g.fillStyle = ACCENT; g.shadowColor = ACCENT; g.shadowBlur = 8;
+    g.beginPath(); g.moveTo(cx, cy - R + 2); g.lineTo(cx - 9, cy - R - 12); g.lineTo(cx + 9, cy - R - 12); g.closePath(); g.fill();
+    g.shadowBlur = 0;
   }
   draw();
 
   function spinTo(n, done) {
     landed = -1;
     const idx = ORDER.indexOf(n);
-    const R = canvas.getBoundingClientRect().width / 2 - 6;
+    const R = canvas.getBoundingClientRect().width / 2 - 13;
     const wheelFrom = rot;
     const targetAt = -Math.PI / 2 - (idx * step + step / 2);
     const wheelFinal = wheelFrom + TAU * 8 + (((targetAt - wheelFrom) % TAU + TAU) % TAU);
