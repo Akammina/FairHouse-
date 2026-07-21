@@ -12,6 +12,7 @@ import { renderPlinko } from "./games/plinko.js";
 import { renderRoulette } from "./games/roulette.js";
 import { renderWheel } from "./games/wheel.js";
 import { renderKeno } from "./games/keno.js";
+import { renderMemory } from "./games/memory.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -72,7 +73,7 @@ document.addEventListener("pointerdown", (e) => {
 }, { passive: true });
 
 // ---------- Router ----------
-const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, limbo: renderLimbo, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno };
+const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, limbo: renderLimbo, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory };
 function route() {
   cleanups.forEach((fn) => { try { fn(); } catch { /* ignore */ } }); // tear down the previous view
   cleanups = [];
