@@ -110,6 +110,12 @@ export const debitStake = db.transaction(
   },
 );
 
+/** Debit extra stake mid-round (e.g. a blackjack double) without touching the nonce. */
+const bumpDown = db.prepare("UPDATE players SET balance = balance - ? WHERE id = ? AND balance >= ?");
+export function debitExtra(playerId: string, cents: number): void {
+  if (bumpDown.run(cents, playerId, cents).changes === 0) throw new Error("Insufficient funds");
+}
+
 export function credit(playerId: string, amountCents: number): number {
   if (amountCents > 0) adjustBalance.run(amountCents, playerId);
   return getBalance(playerId);

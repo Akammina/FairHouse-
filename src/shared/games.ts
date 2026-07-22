@@ -152,6 +152,81 @@ export function kenoMultiplier(spots: number, hits: number): number {
   return KENO_PAYTABLE[spots]?.[hits] ?? 0;
 }
 
+// ---------- Cards: a seed-derived 52-card deck, shared by the card games ----------
+// A card is 0..51. rank 0..12 = 2..A, suit 0..3 = ♠♥♦♣.
+export const cardRank = (c: number) => c % 13;
+export const cardSuit = (c: number) => Math.floor(c / 13);
+export async function shuffledDeck(hmac: string): Promise<number[]> {
+  const keyed = await Promise.all(
+    Array.from({ length: 52 }, async (_, c) => ({ c, k: await sha256Hex(`${hmac}:${c}`) })),
+  );
+  keyed.sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
+  return keyed.map((x) => x.c);
+}
+
+// ---------- Slots: three reels, three-of-a-kind pays ----------
+export const SLOT_PAYS = [70, 45, 35, 25, 20, 15]; // three-of-a-kind multiplier by symbol index (0 = best)
+export const SLOT_COUNT = SLOT_PAYS.length;
+export function slotSpin(hmac: string): number[] {
+  return [0, 1, 2].map((n) => Math.floor((parseInt(hmac.slice(n * 8, n * 8 + 8), 16) / 0x100000000) * SLOT_COUNT));
+}
+export function slotPayout(reels: number[]): number {
+  return reels[0] === reels[1] && reels[1] === reels[2] ? SLOT_PAYS[reels[0]] : 0;
+}
+
+// ---------- Hi-Lo: guess higher/lower than the current card ----------
+// "Higher or same" wins when nextRank >= currentRank; "Lower or same" when <=.
+export function hiloHigherMult(rank: number): number {
+  const p = (13 - rank) / 13; // P(next rank >= current)
+  return Math.floor(((1 - HOUSE_EDGE) / p) * 100) / 100;
+}
+export function hiloLowerMult(rank: number): number {
+  const p = (rank + 1) / 13; // P(next rank <= current)
+  return Math.floor(((1 - HOUSE_EDGE) / p) * 100) / 100;
+}
+
+// ---------- Video Poker: Jacks-or-Better hand evaluation (9/6 paytable) ----------
+export const VPOKER_PAYS = { royal: 800, straightFlush: 50, four: 25, fullHouse: 9, flush: 6, straight: 4, three: 3, twoPair: 2, jacks: 1, none: 0 };
+export function pokerEvaluate(cards: number[]): { name: string; multiplier: number } {
+  const ranks = cards.map((c) => c % 13).sort((a, b) => a - b);
+  const suits = cards.map((c) => Math.floor(c / 13));
+  const flush = suits.every((s) => s === suits[0]);
+  const uniq = [...new Set(ranks)];
+  let straight = false, straightHigh = -1;
+  if (uniq.length === 5) {
+    if (ranks[4] - ranks[0] === 4) { straight = true; straightHigh = ranks[4]; }
+    else if (ranks.join(",") === "0,1,2,3,12") { straight = true; straightHigh = 3; } // A-2-3-4-5 wheel
+  }
+  const counts: Record<number, number> = {};
+  ranks.forEach((r) => (counts[r] = (counts[r] || 0) + 1));
+  const freqs = Object.values(counts).sort((a, b) => b - a);
+  const pairRanks = Object.keys(counts).filter((r) => counts[Number(r)] === 2).map(Number);
+  const P = VPOKER_PAYS;
+  if (flush && straight && straightHigh === 12) return { name: "Royal Flush", multiplier: P.royal };
+  if (flush && straight) return { name: "Straight Flush", multiplier: P.straightFlush };
+  if (freqs[0] === 4) return { name: "Four of a Kind", multiplier: P.four };
+  if (freqs[0] === 3 && freqs[1] === 2) return { name: "Full House", multiplier: P.fullHouse };
+  if (flush) return { name: "Flush", multiplier: P.flush };
+  if (straight) return { name: "Straight", multiplier: P.straight };
+  if (freqs[0] === 3) return { name: "Three of a Kind", multiplier: P.three };
+  if (freqs[0] === 2 && freqs[1] === 2) return { name: "Two Pair", multiplier: P.twoPair };
+  if (freqs[0] === 2 && pairRanks.some((r) => r >= 9)) return { name: "Jacks or Better", multiplier: P.jacks };
+  return { name: "No win", multiplier: P.none };
+}
+
+// ---------- Blackjack: hand value with soft aces ----------
+export function handValue(cards: number[]): number {
+  let total = 0, aces = 0;
+  for (const c of cards) {
+    const r = c % 13;
+    total += r <= 8 ? r + 2 : r === 12 ? 11 : 10;
+    if (r === 12) aces++;
+  }
+  while (total > 21 && aces > 0) { total -= 10; aces--; }
+  return total;
+}
+export const isBlackjack = (cards: number[]) => cards.length === 2 && handValue(cards) === 21;
+
 // ---------- Memory: a provably-fair shuffled deck of pairs ----------
 export const MEMORY_DIFFICULTY: Record<string, { pairs: number; cols: number; budget: number; mult: number }> = {
   easy: { pairs: 8, cols: 4, budget: 16, mult: 1.9 },

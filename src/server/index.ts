@@ -22,9 +22,13 @@ import {
   wheelSegment, wheelMultiplier, WHEEL_SEGMENTS,
   kenoDraw, kenoMultiplier, KENO_POOL, KENO_MAX_PICKS,
   memoryDeck, MEMORY_DIFFICULTY,
+  slotSpin, slotPayout,
+  shuffledDeck, cardRank,
+  hiloHigherMult, hiloLowerMult,
+  pokerEvaluate, handValue, isBlackjack,
 } from "../shared/games.js";
 import {
-  ensureSession, getPlayer, getBalance, debitStake, credit, recordBet,
+  ensureSession, getPlayer, getBalance, debitStake, debitExtra, credit, recordBet,
   rotateSeed, recentBets,
 } from "./ledger.js";
 
@@ -90,6 +94,21 @@ app.post("/api/coinflip/bet", (req, res) =>
     const balance = win ? credit(p.id, payout) : getBalance(p.id);
     recordBet(p.id, "coinflip", p.nonce, `${side} → ${result}`, bet, payout, win, p.server_seed_hash, p.client_seed);
     return { game: "coinflip", result, side, win, multiplier: COIN_MULTIPLIER, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
+  }),
+);
+
+app.post("/api/slots/bet", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    const bet = stakeCents(req.body?.stake);
+    if (!(bet > 0)) throw new Error("Invalid stake");
+    const reels = slotSpin(await betHmac(p.server_seed, p.client_seed, p.nonce));
+    const mult = slotPayout(reels);
+    const payout = Math.floor(bet * mult);
+    debitStake(p.id, p.nonce, bet);
+    const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);
+    recordBet(p.id, "slots", p.nonce, `${reels.join("-")} → ${mult}×`, bet, payout, payout > 0, p.server_seed_hash, p.client_seed);
+    return { game: "slots", reels, multiplier: mult, win: payout > 0, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
   }),
 );
 
@@ -417,6 +436,182 @@ app.post("/api/memory/flip", (req, res) =>
       return { ...base, busted: true, balance: getBalance(r.playerId), deck: r.deck };
     }
     return { ...base, movesLeft: r.budget - r.moves };
+  }),
+);
+
+// ---------- Hi-Lo (server-authoritative card ladder) ----------
+interface HiLoRound {
+  id: string; playerId: string; stakeCents: number; deck: number[]; pos: number; multiplier: number;
+  ended: boolean; nonce: number; serverSeedHash: string; clientSeed: string;
+}
+const hiloRounds = new Map<string, HiLoRound>();
+const hiloActive = new Map<string, string>();
+const hiloMults = (card: number) => ({ higher: hiloHigherMult(cardRank(card)), lower: hiloLowerMult(cardRank(card)) });
+
+app.post("/api/hilo/start", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    const bet = stakeCents(req.body?.stake);
+    if (!(bet > 0)) throw new Error("Invalid stake");
+    const prev = hiloActive.get(p.id);
+    if (prev) { hiloRounds.delete(prev); hiloActive.delete(p.id); }
+
+    debitStake(p.id, p.nonce, bet);
+    const deck = await shuffledDeck(await betHmac(p.server_seed, p.client_seed, p.nonce));
+    const roundId = randomBytes(8).toString("hex");
+    hiloRounds.set(roundId, { id: roundId, playerId: p.id, stakeCents: bet, deck, pos: 0, multiplier: 1, ended: false, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed });
+    hiloActive.set(p.id, roundId);
+    return { roundId, card: deck[0], ...hiloMults(deck[0]), multiplier: 1, betCents: bet, balance: getBalance(p.id), nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
+  }),
+);
+
+app.post("/api/hilo/guess", (req, res) =>
+  wrap(res, async () => {
+    const r = hiloRounds.get(String(req.body?.roundId));
+    if (!r || r.ended) throw new Error("Round is over");
+    const choice = String(req.body?.choice);
+    if (choice !== "higher" && choice !== "lower") throw new Error("Bad guess");
+    if (r.pos + 1 >= 52) throw new Error("Deck exhausted — cash out");
+
+    const cur = r.deck[r.pos];
+    const next = r.deck[r.pos + 1];
+    const m = hiloMults(cur);
+    const correct = choice === "higher" ? cardRank(next) >= cardRank(cur) : cardRank(next) <= cardRank(cur);
+    r.pos += 1;
+    if (!correct) {
+      r.ended = true;
+      recordBet(r.playerId, "hilo", r.nonce, `busted at ${floor2(r.multiplier)}×`, r.stakeCents, 0, false, r.serverSeedHash, r.clientSeed);
+      hiloActive.delete(r.playerId);
+      return { card: next, correct: false, busted: true, balance: getBalance(r.playerId) };
+    }
+    r.multiplier *= choice === "higher" ? m.higher : m.lower;
+    return { card: next, correct: true, multiplier: floor2(r.multiplier), ...hiloMults(next) };
+  }),
+);
+
+app.post("/api/hilo/cashout", (req, res) =>
+  wrap(res, async () => {
+    const r = hiloRounds.get(String(req.body?.roundId));
+    if (!r || r.ended) throw new Error("Round is over");
+    r.ended = true;
+    const mult = floor2(r.multiplier);
+    const payout = Math.floor(r.stakeCents * mult);
+    const balance = credit(r.playerId, payout);
+    recordBet(r.playerId, "hilo", r.nonce, `cashed @${mult}×`, r.stakeCents, payout, payout > r.stakeCents, r.serverSeedHash, r.clientSeed);
+    hiloActive.delete(r.playerId);
+    return { multiplier: mult, payoutCents: payout, balance };
+  }),
+);
+
+// ---------- Video Poker (Jacks or Better) ----------
+interface VpRound { id: string; playerId: string; stakeCents: number; deck: number[]; hand: number[]; next: number; nonce: number; serverSeedHash: string; clientSeed: string; }
+const vpRounds = new Map<string, VpRound>();
+const vpActive = new Map<string, string>();
+
+app.post("/api/vpoker/deal", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    const bet = stakeCents(req.body?.stake);
+    if (!(bet > 0)) throw new Error("Invalid stake");
+    const prev = vpActive.get(p.id);
+    if (prev) { vpRounds.delete(prev); vpActive.delete(p.id); }
+    debitStake(p.id, p.nonce, bet);
+    const deck = await shuffledDeck(await betHmac(p.server_seed, p.client_seed, p.nonce));
+    const roundId = randomBytes(8).toString("hex");
+    vpRounds.set(roundId, { id: roundId, playerId: p.id, stakeCents: bet, deck, hand: deck.slice(0, 5), next: 5, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed });
+    vpActive.set(p.id, roundId);
+    return { roundId, hand: deck.slice(0, 5), betCents: bet, balance: getBalance(p.id), nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
+  }),
+);
+
+app.post("/api/vpoker/draw", (req, res) =>
+  wrap(res, async () => {
+    const r = vpRounds.get(String(req.body?.roundId));
+    if (!r) throw new Error("Round is over");
+    const holds = Array.isArray(req.body?.holds) ? req.body.holds : [];
+    for (let i = 0; i < 5; i++) if (!holds[i]) r.hand[i] = r.deck[r.next++];
+    const evalResult = pokerEvaluate(r.hand);
+    const payout = Math.floor(r.stakeCents * evalResult.multiplier);
+    const balance = payout > 0 ? credit(r.playerId, payout) : getBalance(r.playerId);
+    recordBet(r.playerId, "vpoker", r.nonce, `${evalResult.name} → ${evalResult.multiplier}×`, r.stakeCents, payout, payout > r.stakeCents, r.serverSeedHash, r.clientSeed);
+    vpRounds.delete(r.id); vpActive.delete(r.playerId);
+    return { hand: r.hand, name: evalResult.name, multiplier: evalResult.multiplier, betCents: r.stakeCents, payoutCents: payout, win: payout > 0, balance };
+  }),
+);
+
+// ---------- Blackjack (hit / stand / double vs dealer) ----------
+interface BjRound { id: string; playerId: string; stakeCents: number; deck: number[]; player: number[]; dealer: number[]; next: number; doubled: boolean; nonce: number; serverSeedHash: string; clientSeed: string; }
+const bjRounds = new Map<string, BjRound>();
+const bjActive = new Map<string, string>();
+
+function bjResolve(r: BjRound) {
+  const pv = handValue(r.player);
+  if (pv <= 21) while (handValue(r.dealer) < 17) r.dealer.push(r.deck[r.next++]); // dealer stands on 17
+  const dv = handValue(r.dealer);
+  const wager = r.doubled ? r.stakeCents * 2 : r.stakeCents;
+  let outcome: string, mult: number;
+  if (pv > 21) { outcome = "Bust — dealer wins"; mult = 0; }
+  else if (dv > 21) { outcome = "Dealer busts — you win"; mult = 2; }
+  else if (pv > dv) { outcome = "You win"; mult = 2; }
+  else if (pv < dv) { outcome = "Dealer wins"; mult = 0; }
+  else { outcome = "Push"; mult = 1; }
+  const payout = Math.floor(wager * mult);
+  const balance = payout > 0 ? credit(r.playerId, payout) : getBalance(r.playerId);
+  recordBet(r.playerId, "blackjack", r.nonce, outcome, wager, payout, payout > wager, r.serverSeedHash, r.clientSeed);
+  bjRounds.delete(r.id); bjActive.delete(r.playerId);
+  return { done: true, player: r.player, dealer: r.dealer, playerValue: pv, dealerValue: dv, outcome, payoutCents: payout, balance, betCents: wager };
+}
+const bjActiveRound = (id: unknown) => {
+  const r = bjRounds.get(String(id));
+  if (!r) throw new Error("Hand is over");
+  return r;
+};
+
+app.post("/api/bj/deal", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    const bet = stakeCents(req.body?.stake);
+    if (!(bet > 0)) throw new Error("Invalid stake");
+    const prev = bjActive.get(p.id);
+    if (prev) { bjRounds.delete(prev); bjActive.delete(p.id); }
+    debitStake(p.id, p.nonce, bet);
+    const deck = await shuffledDeck(await betHmac(p.server_seed, p.client_seed, p.nonce));
+    const roundId = randomBytes(8).toString("hex");
+    const player = [deck[0], deck[2]], dealer = [deck[1], deck[3]];
+    const r: BjRound = { id: roundId, playerId: p.id, stakeCents: bet, deck, player, dealer, next: 4, doubled: false, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
+    const seed = { serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed, nonce: p.nonce };
+
+    if (isBlackjack(player) || isBlackjack(dealer)) {
+      let outcome: string, payout: number;
+      if (isBlackjack(player) && isBlackjack(dealer)) { outcome = "Push — both blackjack"; payout = bet; }
+      else if (isBlackjack(player)) { outcome = "Blackjack! You win"; payout = Math.floor(bet * 2.5); }
+      else { outcome = "Dealer blackjack"; payout = 0; }
+      const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);
+      recordBet(p.id, "blackjack", p.nonce, outcome, bet, payout, payout > bet, p.server_seed_hash, p.client_seed);
+      return { roundId, ...seed, done: true, player, dealer, playerValue: handValue(player), dealerValue: handValue(dealer), outcome, payoutCents: payout, balance, betCents: bet };
+    }
+    bjRounds.set(roundId, r); bjActive.set(p.id, roundId);
+    return { roundId, ...seed, done: false, player, dealer: [dealer[0]], playerValue: handValue(player), canDouble: true, betCents: bet, balance: getBalance(p.id) };
+  }),
+);
+
+app.post("/api/bj/hit", (req, res) =>
+  wrap(res, async () => {
+    const r = bjActiveRound(req.body?.roundId);
+    r.player.push(r.deck[r.next++]);
+    if (handValue(r.player) > 21) return bjResolve(r);
+    return { done: false, player: r.player, playerValue: handValue(r.player), canDouble: false };
+  }),
+);
+app.post("/api/bj/stand", (req, res) => wrap(res, async () => bjResolve(bjActiveRound(req.body?.roundId))));
+app.post("/api/bj/double", (req, res) =>
+  wrap(res, async () => {
+    const r = bjActiveRound(req.body?.roundId);
+    if (r.player.length !== 2) throw new Error("Can only double on your first move");
+    debitExtra(r.playerId, r.stakeCents);
+    r.doubled = true;
+    r.player.push(r.deck[r.next++]);
+    return bjResolve(r);
   }),
 );
 

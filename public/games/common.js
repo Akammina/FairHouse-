@@ -46,6 +46,15 @@ function item(ul, b, append) {
   while (ul.children.length > 20) ul.lastChild.remove();
 }
 
+// Playing-card rendering shared by Hi-Lo, Video Poker, and Blackjack.
+const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+const SUITS = [["♠", "dark"], ["♥", "red"], ["♦", "red"], ["♣", "dark"]];
+export function cardFace(c) { return { rank: RANKS[c % 13], suit: SUITS[Math.floor(c / 13)][0], color: SUITS[Math.floor(c / 13)][1] }; }
+export function cardHTML(c, extra = "") {
+  const f = cardFace(c);
+  return `<div class="pcard ${f.color} ${extra}"><span class="pc-rank">${f.rank}</span><span class="pc-suit">${f.suit}</span></div>`;
+}
+
 /** HTML for the standard bet-amount field (id-prefixed so multiple can't collide). */
 export function stakeField(id) {
   return `<div class="fld"><span>Bet amount</span>

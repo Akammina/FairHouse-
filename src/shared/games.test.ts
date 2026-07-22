@@ -10,7 +10,11 @@ import {
   rouletteNumber, rouletteColor, roulettePayout,
   wheelSegment, wheelMultiplier, WHEEL_SEGMENTS,
   kenoDraw, kenoMultiplier, KENO_DRAW, KENO_POOL,
+  pokerEvaluate, handValue, isBlackjack,
 } from "./games.js";
+
+// card = suit*13 + rank; rank 0..12 = 2..A, suit 0..3 = ♠♥♦♣
+const card = (rank: number, suit: number) => suit * 13 + rank;
 
 // helper: deterministic pseudo-digests for distribution checks
 const digest = (i: number) => sha256Hex(`sample-${i}`);
@@ -102,6 +106,26 @@ test("wheel lands on a segment and keeps a house edge", () => {
   assert.equal(wheelMultiplier(seg), WHEEL_SEGMENTS[seg]);
   const ev = WHEEL_SEGMENTS.reduce((a, b) => a + b, 0) / WHEEL_SEGMENTS.length;
   assert.ok(ev > 0.9 && ev < 1.0, `wheel EV ${ev}`);
+});
+
+test("poker evaluator ranks hands correctly", () => {
+  const royal = [8, 9, 10, 11, 12].map((r) => card(r, 0)); // 10-J-Q-K-A spades
+  assert.equal(pokerEvaluate(royal).name, "Royal Flush");
+  const sf = [0, 1, 2, 3, 4].map((r) => card(r, 1)); // 2-6 hearts
+  assert.equal(pokerEvaluate(sf).name, "Straight Flush");
+  assert.equal(pokerEvaluate([card(1, 0), card(1, 1), card(1, 2), card(11, 0), card(11, 1)]).name, "Full House");
+  assert.equal(pokerEvaluate([card(9, 0), card(9, 1), card(0, 0), card(3, 1), card(7, 2)]).name, "Jacks or Better");
+  assert.equal(pokerEvaluate([card(5, 0), card(5, 1), card(0, 0), card(3, 1), card(7, 2)]).multiplier, 0); // pair of 7s — no win
+  assert.equal(pokerEvaluate([card(2, 0), card(2, 1), card(5, 0), card(5, 2), card(9, 3)]).name, "Two Pair");
+  // A-2-3-4-5 wheel straight
+  assert.equal(pokerEvaluate([card(12, 0), card(0, 1), card(1, 2), card(2, 3), card(3, 0)]).name, "Straight");
+});
+
+test("blackjack hand value handles soft aces", () => {
+  assert.equal(handValue([card(12, 0), card(11, 0)]), 21); // A + K
+  assert.ok(isBlackjack([card(12, 0), card(8, 1)])); // A + 10
+  assert.equal(handValue([card(12, 0), card(12, 1), card(7, 0)]), 21); // A+A+9 → 11+1+9
+  assert.equal(handValue([card(8, 0), card(5, 1), card(3, 2)]), 22); // 10+7+5 bust
 });
 
 test("keno draws 10 distinct numbers deterministically and scores hits", async () => {

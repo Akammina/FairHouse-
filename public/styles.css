@@ -208,6 +208,56 @@ canvas { max-width: 100%; }
 .limbo-sub.win { color: var(--win); font-weight: 700; } .limbo-sub.lose { color: var(--lose); }
 @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.09); } 100% { transform: scale(1); } }
 
+/* Playing cards (Hi-Lo, Video Poker, Blackjack) */
+.pcard { background: #f4f1ea; border-radius: 10px; aspect-ratio: 5 / 7; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border: 1px solid #d9d4c8; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); }
+.pcard.red { color: #d83a48; } .pcard.dark { color: #1a1f2a; }
+.pcard .pc-rank { font-weight: 800; font-size: clamp(18px, 5vw, 26px); line-height: 1; }
+.pcard .pc-suit { font-size: clamp(22px, 6vw, 32px); line-height: 1; }
+.pcard.back { background: linear-gradient(135deg, #1c2946, #0f1830); border-color: #2b3c5c; }
+.pcard.back .pc-rank, .pcard.back .pc-suit { color: rgba(245, 196, 81, 0.5); }
+.pcard.dealing { animation: cardDeal 0.3s ease; }
+@keyframes cardDeal { 0% { transform: translateY(-14px) scale(0.9); opacity: 0; } 100% { transform: none; opacity: 1; } }
+
+/* Blackjack */
+.bj-area { display: flex; flex-direction: column; gap: 20px; align-items: center; min-height: 210px; }
+.bj-side { text-align: center; }
+.bj-label { display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-bottom: 8px; }
+.bj-label b { color: var(--ink); font-family: var(--mono); font-size: 14px; }
+.bj-row { display: flex; gap: 6px; justify-content: center; min-height: 84px; }
+.bj-row .pcard { width: clamp(46px, 14vw, 62px); }
+.bj-btns { display: flex; gap: 8px; }
+.bj-btns .btn { flex: 1; }
+.bj-hit { --accent: #33d17f; } .bj-stand { --accent: #ff8a3d; } .bj-double { --accent: #f5c451; }
+
+/* Video Poker */
+.vp-pay { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; font-size: 11px; color: var(--muted); margin-bottom: 14px; font-family: var(--mono); }
+.vp-pay b { color: var(--gold); }
+.vp-hand { display: flex; gap: 8px; justify-content: center; }
+.vp-slot { position: relative; width: clamp(46px, 15vw, 68px); cursor: pointer; }
+.vp-slot .pcard { width: 100%; }
+.vp-hold { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 800; letter-spacing: 0.06em; background: var(--gold); color: #2a2000; padding: 2px 6px; border-radius: 4px; opacity: 0; transition: opacity 0.12s; pointer-events: none; }
+.vp-slot.held .vp-hold { opacity: 1; }
+.vp-slot.held .pcard { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+/* Hi-Lo */
+.hilo-board { display: flex; align-items: center; gap: 14px; justify-content: center; min-height: 132px; }
+.hilo-trail { display: flex; gap: 4px; flex-wrap: wrap; max-width: 200px; justify-content: flex-end; }
+.hilo-trail .pcard { width: 30px; box-shadow: none; }
+.hilo-current .pcard { width: 92px; }
+.hilo-guesses { display: flex; gap: 10px; }
+.hilo-guesses .btn { flex: 1; }
+.hilo-hi { --accent: #33d17f; } .hilo-lo { --accent: #ff8a3d; }
+
+/* Slots */
+.slot-reels { display: flex; gap: 12px; justify-content: center; margin: 12px 0; }
+.slot-reel { width: clamp(72px, 22vw, 96px); aspect-ratio: 5 / 6; display: flex; align-items: center; justify-content: center; font-size: clamp(40px, 11vw, 54px); background: var(--panel-2); border: 2px solid var(--line); border-radius: 12px; }
+.slot-reel.spinning { animation: reelBlur 0.15s linear infinite; }
+@keyframes reelBlur { 0%, 100% { filter: blur(0); } 50% { filter: blur(1.6px); } }
+.slot-reel.landed { animation: reelLand 0.28s ease; }
+@keyframes reelLand { 0% { transform: translateY(-8px) scale(1.06); } 100% { transform: none; } }
+.slot-reel.win { border-color: var(--gold); box-shadow: 0 0 22px rgba(245, 196, 81, 0.5); }
+.slot-pay { display: flex; flex-wrap: wrap; gap: 8px 14px; justify-content: center; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
 /* Crash */
 .crash-wrap { position: relative; aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; background: linear-gradient(180deg, #0c1220, #0a0e17); }
 #ccanvas { position: absolute; inset: 0; width: 100%; height: 100%; }

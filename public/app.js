@@ -13,6 +13,10 @@ import { renderRoulette } from "./games/roulette.js";
 import { renderWheel } from "./games/wheel.js";
 import { renderKeno } from "./games/keno.js";
 import { renderMemory } from "./games/memory.js";
+import { renderSlots } from "./games/slots.js";
+import { renderHilo } from "./games/hilo.js";
+import { renderVpoker } from "./games/vpoker.js";
+import { renderBlackjack } from "./games/blackjack.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -73,7 +77,7 @@ document.addEventListener("pointerdown", (e) => {
 }, { passive: true });
 
 // ---------- Router ----------
-const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, crash: renderCrash, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory };
+const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, crash: renderCrash, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory, slots: renderSlots, hilo: renderHilo, vpoker: renderVpoker, blackjack: renderBlackjack };
 function route() {
   cleanups.forEach((fn) => { try { fn(); } catch { /* ignore */ } }); // tear down the previous view
   cleanups = [];
@@ -97,6 +101,10 @@ function renderLobby(root) {
     { key: "wheel", icon: "🎯", name: "Wheel", tag: "Spin for a multiplier segment.", accent: "#33d17f" },
     { key: "keno", icon: "🔢", name: "Keno", tag: "Pick numbers and match the draw.", accent: "#3b8ff0" },
     { key: "memory", icon: "🃏", name: "Memory", tag: "Clear the pairs within your move budget.", accent: "#e879f9" },
+    { key: "slots", icon: "🎰", name: "Slots", tag: "Spin three reels for a matching payout.", accent: "#f5c451" },
+    { key: "hilo", icon: "🔼", name: "Hi-Lo", tag: "Higher or lower? Build a multiplier, cash out.", accent: "#4fd1c5" },
+    { key: "vpoker", icon: "🂡", name: "Video Poker", tag: "Deal, hold, draw — paid by poker hand.", accent: "#4caf82" },
+    { key: "blackjack", icon: "♠️", name: "Blackjack", tag: "Beat the dealer to 21. Hit, stand, double.", accent: "#2fae66" },
   ];
   root.innerHTML = `
     <div class="lobby-hero">
