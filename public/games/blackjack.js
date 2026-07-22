@@ -43,8 +43,8 @@ export function renderBlackjack(root, ctx) {
       const res = await ctx.api(path, { roundId: round.roundId, ...extra });
       ctx.sound.reveal();
       if (res.player) showPlayer(res.player, res.playerValue);
-      if (res.done) finish(res);
-      else { showDealer(res.dealer, "", true); $("bjDouble").style.display = res.canDouble ? "" : "none"; }
+      if (res.done) finish(res); // finish() reveals the dealer; on a plain hit the dealer is unchanged
+      else $("bjDouble").style.display = res.canDouble ? "" : "none";
     } catch (e) { $("bjMsg").textContent = e.message; $("bjMsg").className = "msg lose"; }
     finally { busy = false; document.querySelectorAll("#bjActions button").forEach((b) => (b.disabled = false)); }
   }
