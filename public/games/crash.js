@@ -29,7 +29,7 @@ export function renderCrash(root, ctx) {
   const canvas = $("ccanvas");
   const g = canvas.getContext("2d");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let round = null, es = null, startPerf = 0, cur = 1, crashed = false, cashed = false, animId = 0;
+  let round = null, es = null, startPerf = 0, cur = 1, crashed = false, cashed = false, animId = 0, pollTimer = 0;
 
   function size() {
     const r = canvas.getBoundingClientRect();
@@ -39,7 +39,7 @@ export function renderCrash(root, ctx) {
   }
   const onResize = () => { size(); draw(cur, perfElapsed(), crashed); };
   window.addEventListener("resize", onResize);
-  ctx.onCleanup(() => { window.removeEventListener("resize", onResize); cancelAnimationFrame(animId); if (es) es.close(); });
+  ctx.onCleanup(() => { window.removeEventListener("resize", onResize); cancelAnimationFrame(animId); clearInterval(pollTimer); if (es) es.close(); });
   size();
 
   const perfElapsed = () => performance.now() - startPerf;
@@ -76,7 +76,20 @@ export function renderCrash(root, ctx) {
       startPerf = performance.now() - (Math.log(m) / CRASH_GROWTH_RATE) * 1000; // lock local clock to server progress
     });
     es.addEventListener("crash", (e) => onCrash(JSON.parse(e.data).crashPoint));
-    es.onerror = () => { if (es) { es.close(); es = null; } };
+    // If the stream drops mid-round, don't get stuck — poll the server for the outcome.
+    es.onerror = () => { if (es) { es.close(); es = null; } if (round && !crashed && !cashed) startPolling(); };
+  }
+
+  function startPolling() {
+    clearInterval(pollTimer);
+    pollTimer = setInterval(async () => {
+      if (crashed || cashed || !round) { clearInterval(pollTimer); return; }
+      try {
+        const s = await (await fetch(`/api/crash/status?roundId=${round.roundId}`)).json();
+        if (s.ended) { clearInterval(pollTimer); if (!s.cashed) onCrash(s.crashPoint ?? cur); }
+        else if (typeof s.multiplier === "number") startPerf = performance.now() - (Math.log(s.multiplier) / CRASH_GROWTH_RATE) * 1000;
+      } catch { /* keep trying */ }
+    }, 500);
   }
 
   function loop() {
@@ -93,7 +106,8 @@ export function renderCrash(root, ctx) {
     $("cCash").disabled = true;
     try {
       const res = await ctx.api("/api/crash/cashout", { roundId: round.roundId });
-      cashed = true; cancelAnimationFrame(animId); if (es) { es.close(); es = null; }
+      if (res.crashed) { onCrash(res.crashPoint); return; } // it busted before the click landed
+      cashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); if (es) { es.close(); es = null; }
       cur = res.multiplier;
       $("cmult").textContent = res.multiplier.toFixed(2) + "×"; $("cmult").className = "crash-mult win";
       $("cstatus").textContent = `Cashed out @ ${res.multiplier.toFixed(2)}× — won +${ctx.money(res.payoutCents - round.stakeCents)}`;
@@ -110,8 +124,8 @@ export function renderCrash(root, ctx) {
   }
 
   function onCrash(cp) {
-    if (cashed) return;
-    crashed = true; cancelAnimationFrame(animId); if (es) { es.close(); es = null; }
+    if (cashed || crashed) return;
+    crashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); if (es) { es.close(); es = null; }
     cur = cp;
     $("cmult").textContent = cp.toFixed(2) + "×"; $("cmult").className = "crash-mult lose";
     $("cstatus").textContent = `Crashed @ ${cp.toFixed(2)}× — lost ${ctx.money(round.stakeCents)}`;

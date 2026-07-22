@@ -96,11 +96,21 @@ app.post("/api/coinflip/bet", (req, res) =>
 // ---------- Crash (live, SSE-driven, server-authoritative) ----------
 const floor2 = (n: number) => Math.floor(n * 100) / 100;
 interface CrashRound {
-  playerId: string; stakeCents: number; crashPoint: number; startedAt: number;
+  id: string; playerId: string; stakeCents: number; crashPoint: number; startedAt: number;
   cashed: boolean; ended: boolean; nonce: number; serverSeedHash: string; clientSeed: string;
 }
 const crashRounds = new Map<string, CrashRound>();
 const crashActive = new Map<string, string>();
+
+const crashHasBusted = (r: CrashRound) => crashMultiplierAt(Date.now() - r.startedAt) >= r.crashPoint;
+/** Finalize a busted round exactly once (record the loss, free the player). */
+function settleCrashLoss(r: CrashRound): void {
+  if (r.ended) return;
+  r.ended = true;
+  recordBet(r.playerId, "crash", r.nonce, `busted @${floor2(r.crashPoint)}×`, r.stakeCents, 0, false, r.serverSeedHash, r.clientSeed);
+  crashActive.delete(r.playerId);
+  setTimeout(() => crashRounds.delete(r.id), 30_000);
+}
 
 app.post("/api/crash/start", (req, res) =>
   wrap(res, async () => {
@@ -114,7 +124,7 @@ app.post("/api/crash/start", (req, res) =>
     const crashPoint = limboResult(await betHmac(p.server_seed, p.client_seed, p.nonce)); // provably-fair bust point (hidden)
     const roundId = randomBytes(8).toString("hex");
     crashRounds.set(roundId, {
-      playerId: p.id, stakeCents: bet, crashPoint, startedAt: Date.now(),
+      id: roundId, playerId: p.id, stakeCents: bet, crashPoint, startedAt: Date.now(),
       cashed: false, ended: false, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed,
     });
     crashActive.set(p.id, roundId);
@@ -133,9 +143,7 @@ app.get("/api/crash/stream", (req, res) => {
     if (r.ended || r.cashed) { clearInterval(timer); res.end(); return; }
     const m = crashMultiplierAt(Date.now() - r.startedAt);
     if (m >= r.crashPoint) {
-      r.ended = true;
-      recordBet(r.playerId, "crash", r.nonce, `busted @${floor2(r.crashPoint)}×`, r.stakeCents, 0, false, r.serverSeedHash, r.clientSeed);
-      crashActive.delete(r.playerId);
+      settleCrashLoss(r);
       send("crash", { crashPoint: floor2(r.crashPoint) });
       clearInterval(timer); res.end();
     } else {
@@ -145,18 +153,32 @@ app.get("/api/crash/stream", (req, res) => {
   req.on("close", () => clearInterval(timer));
 });
 
+// Poll fallback so a round always resolves even if the stream drops.
+app.get("/api/crash/status", (req, res) => {
+  const r = crashRounds.get(String(req.query.roundId));
+  if (!r) { res.json({ ended: true, crashPoint: null }); return; }
+  if (r.cashed) { res.json({ ended: true, cashed: true }); return; }
+  if (r.ended || crashHasBusted(r)) { settleCrashLoss(r); res.json({ ended: true, crashPoint: floor2(r.crashPoint) }); return; }
+  res.json({ ended: false, multiplier: floor2(crashMultiplierAt(Date.now() - r.startedAt)) });
+});
+
 app.post("/api/crash/cashout", (req, res) =>
   wrap(res, async () => {
     const r = crashRounds.get(String(req.body?.roundId));
-    if (!r || r.ended || r.cashed) throw new Error("Round is over");
-    const m = crashMultiplierAt(Date.now() - r.startedAt);
-    if (m >= r.crashPoint) throw new Error("Too late — it already crashed");
-    const mult = floor2(m);
+    if (!r) throw new Error("Round not found");
+    if (r.cashed) throw new Error("Already cashed out");
+    // If it already busted (flagged, or just now), the cash-out is a loss — report the crash.
+    if (r.ended || crashHasBusted(r)) {
+      settleCrashLoss(r);
+      return { crashed: true, crashPoint: floor2(r.crashPoint) };
+    }
+    const mult = floor2(crashMultiplierAt(Date.now() - r.startedAt));
     const payout = Math.floor(r.stakeCents * mult);
     r.cashed = true; r.ended = true;
     const balance = credit(r.playerId, payout);
     recordBet(r.playerId, "crash", r.nonce, `cashed @${mult}×`, r.stakeCents, payout, true, r.serverSeedHash, r.clientSeed);
     crashActive.delete(r.playerId);
+    setTimeout(() => crashRounds.delete(r.id), 30_000);
     return { multiplier: mult, payoutCents: payout, balance };
   }),
 );
