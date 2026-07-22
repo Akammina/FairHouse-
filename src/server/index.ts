@@ -15,7 +15,7 @@ import { betHmac } from "../shared/provablyFair.js";
 import {
   diceRoll, diceMultiplier, diceWin, DICE_TARGET_MIN, DICE_TARGET_MAX,
   coinResult, COIN_MULTIPLIER, type Coin,
-  limboResult, limboWin, LIMBO_TARGET_MIN, LIMBO_TARGET_MAX,
+  limboResult, crashMultiplierAt,
   minesLayout, minesMultiplier, MINES_TILES,
   plinkoPath, plinkoBucket, plinkoMultiplier,
   rouletteNumber, rouletteColor, roulettePayout, type RouletteBet,
@@ -93,20 +93,71 @@ app.post("/api/coinflip/bet", (req, res) =>
   }),
 );
 
-app.post("/api/limbo/bet", (req, res) =>
+// ---------- Crash (live, SSE-driven, server-authoritative) ----------
+const floor2 = (n: number) => Math.floor(n * 100) / 100;
+interface CrashRound {
+  playerId: string; stakeCents: number; crashPoint: number; startedAt: number;
+  cashed: boolean; ended: boolean; nonce: number; serverSeedHash: string; clientSeed: string;
+}
+const crashRounds = new Map<string, CrashRound>();
+const crashActive = new Map<string, string>();
+
+app.post("/api/crash/start", (req, res) =>
   wrap(res, async () => {
     const p = requirePlayer(req.body?.playerId);
-    const target = Number(req.body?.target);
     const bet = stakeCents(req.body?.stake);
-    if (!(target >= LIMBO_TARGET_MIN && target <= LIMBO_TARGET_MAX)) throw new Error(`Target ${LIMBO_TARGET_MIN}–${LIMBO_TARGET_MAX}`);
     if (!(bet > 0)) throw new Error("Invalid stake");
-    const result = limboResult(await betHmac(p.server_seed, p.client_seed, p.nonce));
-    const win = limboWin(result, target);
-    const payout = win ? Math.floor(bet * target) : 0;
+    const prev = crashActive.get(p.id);
+    if (prev) { crashRounds.delete(prev); crashActive.delete(p.id); }
+
     debitStake(p.id, p.nonce, bet);
-    const balance = win ? credit(p.id, payout) : getBalance(p.id);
-    recordBet(p.id, "limbo", p.nonce, `@${target}× → ${result}×`, bet, payout, win, p.server_seed_hash, p.client_seed);
-    return { game: "limbo", result, target, win, multiplier: target, betCents: bet, payoutCents: payout, balance, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
+    const crashPoint = limboResult(await betHmac(p.server_seed, p.client_seed, p.nonce)); // provably-fair bust point (hidden)
+    const roundId = randomBytes(8).toString("hex");
+    crashRounds.set(roundId, {
+      playerId: p.id, stakeCents: bet, crashPoint, startedAt: Date.now(),
+      cashed: false, ended: false, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed,
+    });
+    crashActive.set(p.id, roundId);
+    return { roundId, betCents: bet, balance: getBalance(p.id), nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
+  }),
+);
+
+// Live stream: pushes the rising multiplier, and the bust when it happens.
+app.get("/api/crash/stream", (req, res) => {
+  const r = crashRounds.get(String(req.query.roundId));
+  if (!r || r.ended) { res.status(404).end(); return; }
+  res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive", "X-Accel-Buffering": "no" });
+  res.flushHeaders?.();
+  const send = (event: string, data: unknown) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  const timer = setInterval(() => {
+    if (r.ended || r.cashed) { clearInterval(timer); res.end(); return; }
+    const m = crashMultiplierAt(Date.now() - r.startedAt);
+    if (m >= r.crashPoint) {
+      r.ended = true;
+      recordBet(r.playerId, "crash", r.nonce, `busted @${floor2(r.crashPoint)}×`, r.stakeCents, 0, false, r.serverSeedHash, r.clientSeed);
+      crashActive.delete(r.playerId);
+      send("crash", { crashPoint: floor2(r.crashPoint) });
+      clearInterval(timer); res.end();
+    } else {
+      send("tick", { multiplier: floor2(m) });
+    }
+  }, 100);
+  req.on("close", () => clearInterval(timer));
+});
+
+app.post("/api/crash/cashout", (req, res) =>
+  wrap(res, async () => {
+    const r = crashRounds.get(String(req.body?.roundId));
+    if (!r || r.ended || r.cashed) throw new Error("Round is over");
+    const m = crashMultiplierAt(Date.now() - r.startedAt);
+    if (m >= r.crashPoint) throw new Error("Too late — it already crashed");
+    const mult = floor2(m);
+    const payout = Math.floor(r.stakeCents * mult);
+    r.cashed = true; r.ended = true;
+    const balance = credit(r.playerId, payout);
+    recordBet(r.playerId, "crash", r.nonce, `cashed @${mult}×`, r.stakeCents, payout, true, r.serverSeedHash, r.clientSeed);
+    crashActive.delete(r.playerId);
+    return { multiplier: mult, payoutCents: payout, balance };
   }),
 );
 

@@ -38,6 +38,14 @@ export function limboWin(result: number, target: number): boolean {
 export const LIMBO_TARGET_MIN = 1.01;
 export const LIMBO_TARGET_MAX = 1000;
 
+// ---------- Crash: a live rising multiplier that busts at a seed-derived point ----------
+// The crash point uses the same provably-fair formula as Limbo (limboResult). The
+// multiplier rises over time and busts when it reaches that point.
+export const CRASH_GROWTH_RATE = Math.log(2) / 5; // the multiplier doubles every 5 seconds
+export function crashMultiplierAt(ms: number): number {
+  return Math.exp(CRASH_GROWTH_RATE * (ms / 1000));
+}
+
 // ---------- Mines: reveal safe tiles, cash out before a mine ----------
 export const MINES_TILES = 25;
 

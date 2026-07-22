@@ -208,6 +208,15 @@ canvas { max-width: 100%; }
 .limbo-sub.win { color: var(--win); font-weight: 700; } .limbo-sub.lose { color: var(--lose); }
 @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.09); } 100% { transform: scale(1); } }
 
+/* Crash */
+.crash-wrap { position: relative; aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; background: linear-gradient(180deg, #0c1220, #0a0e17); }
+#ccanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.crash-mult { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: clamp(44px, 10vw, 84px); font-weight: 800; letter-spacing: -0.02em; color: var(--ink); text-shadow: 0 0 40px rgba(56, 208, 224, 0.35); pointer-events: none; font-variant-numeric: tabular-nums; }
+.crash-mult.win { color: var(--win); text-shadow: 0 0 50px rgba(51, 209, 127, 0.5); }
+.crash-mult.lose { color: var(--lose); text-shadow: 0 0 40px rgba(255, 93, 108, 0.45); }
+.crash-status { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; color: var(--muted); font-size: 13px; padding: 0 12px; }
+.crash-status.win { color: var(--win); font-weight: 600; } .crash-status.lose { color: var(--lose); }
+
 /* Mines */
 .mines-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 6px auto 16px; max-width: 380px; }
 .tile { aspect-ratio: 1; border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.08s, background 0.12s; }

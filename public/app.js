@@ -6,7 +6,7 @@ import { burst } from "./confetti.js";
 import { Sound } from "./sound.js";
 import { renderDice } from "./games/dice.js";
 import { renderCoinflip } from "./games/coinflip.js";
-import { renderLimbo } from "./games/limbo.js";
+import { renderCrash } from "./games/crash.js";
 import { renderMines } from "./games/mines.js";
 import { renderPlinko } from "./games/plinko.js";
 import { renderRoulette } from "./games/roulette.js";
@@ -73,7 +73,7 @@ document.addEventListener("pointerdown", (e) => {
 }, { passive: true });
 
 // ---------- Router ----------
-const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, limbo: renderLimbo, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory };
+const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, crash: renderCrash, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory };
 function route() {
   cleanups.forEach((fn) => { try { fn(); } catch { /* ignore */ } }); // tear down the previous view
   cleanups = [];
@@ -90,7 +90,7 @@ function renderLobby(root) {
   const games = [
     { key: "dice", icon: "🎲", name: "Dice", tag: "Roll under your target to win.", accent: "var(--dice)" },
     { key: "coinflip", icon: "🪙", name: "Coinflip", tag: "Heads or tails, double or nothing.", accent: "var(--coin)" },
-    { key: "limbo", icon: "🚀", name: "Limbo", tag: "Set a multiplier and see if it hits.", accent: "var(--limbo)" },
+    { key: "crash", icon: "📈", name: "Crash", tag: "Cash out before the multiplier busts.", accent: "var(--limbo)" },
     { key: "mines", icon: "💣", name: "Mines", tag: "Uncover gems, dodge the mines, cash out.", accent: "var(--mines)" },
     { key: "plinko", icon: "🔻", name: "Plinko", tag: "Drop a ball into a multiplier bucket.", accent: "#e879f9" },
     { key: "roulette", icon: "🎡", name: "Roulette", tag: "Bet a number or color, spin the wheel.", accent: "#ff5d6c" },
@@ -156,7 +156,6 @@ async function recomputeOutcome(entry, seed) {
   switch (entry.game) {
     case "dice": { const v = diceRoll(hmac).toFixed(2); return { key: v, text: `roll ${v}` }; }
     case "coinflip": { const v = coinResult(hmac); return { key: v, text: v }; }
-    case "limbo": { const v = limboResult(hmac).toFixed(2) + "×"; return { key: v, text: v }; }
     case "roulette": { const n = rouletteNumber(hmac); const v = `${n} ${rouletteColor(n)}`; return { key: v, text: v }; }
     case "wheel": { const s = wheelSegment(hmac); const v = `${wheelMultiplier(s)}×`; return { key: v, text: `segment ${s} · ${v}` }; }
     case "plinko": { const bk = plinkoBucket(plinkoPath(hmac)); const v = `${plinkoMultiplier(bk)}×`; return { key: v, text: `bucket ${bk} · ${v}` }; }
@@ -211,7 +210,7 @@ $("vRun").addEventListener("click", async () => {
   $("vOut").innerHTML =
     `hmac = <span class="ok">${hmac.slice(0, 24)}…</span><br>` +
     `→ Dice: <span class="ok">${diceRoll(hmac).toFixed(2)}</span> &nbsp; ` +
-    `Limbo: <span class="ok">${limboResult(hmac).toFixed(2)}×</span> &nbsp; ` +
+    `Crash: <span class="ok">${limboResult(hmac).toFixed(2)}×</span> &nbsp; ` +
     `Coin: <span class="ok">${coinResult(hmac)}</span><br>` +
     `→ Roulette: <span class="ok">${rn} ${rouletteColor(rn)}</span> &nbsp; ` +
     `Wheel: <span class="ok">${wheelMultiplier(wheelSegment(hmac))}×</span> &nbsp; ` +
