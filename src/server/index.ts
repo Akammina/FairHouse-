@@ -8,6 +8,8 @@
  * against it until the player cashes out or hits a mine.
  */
 import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -34,7 +36,29 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
-app.use(express.json());
+app.set("trust proxy", 1); // Render terminates TLS in front of us; trust one proxy hop for real client IPs
+
+// Security headers. CSP allows same-origin scripts/styles (the app uses inline style attributes).
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: null, // don't force https on localhost (Render already serves https + HSTS)
+    },
+  },
+}));
+
+// Rate limit the API: ~12 requests/second per IP is plenty for click-driven play.
+app.use("/api", rateLimit({ windowMs: 10_000, max: 120, standardHeaders: true, legacyHeaders: false }));
+
+app.use(express.json({ limit: "16kb" }));
 app.use(express.static(join(__dirname, "../../public")));
 app.use("/shared", express.static(join(__dirname, "../shared")));
 
@@ -43,6 +67,10 @@ function requirePlayer(id: unknown) {
   const p = getPlayer(String(id));
   if (!p) throw new Error("Unknown player — start a session first");
   return p;
+}
+/** Defense-in-depth: a round can only be acted on by the player who owns it. */
+function assertOwner(round: { playerId: string }, req: express.Request): void {
+  if (round.playerId !== String(req.body?.playerId)) throw new Error("Not your round");
 }
 const wrap = (res: express.Response, fn: () => Promise<unknown>) =>
   fn().then((v) => res.json(v)).catch((e) => res.status(400).json({ error: (e as Error).message }));
@@ -185,6 +213,7 @@ app.post("/api/crash/cashout", (req, res) =>
   wrap(res, async () => {
     const r = crashRounds.get(String(req.body?.roundId));
     if (!r) throw new Error("Round not found");
+    assertOwner(r, req);
     if (r.cashed) throw new Error("Already cashed out");
     // If it already busted (flagged, or just now), the cash-out is a loss — report the crash.
     if (r.ended || crashHasBusted(r)) {
@@ -302,6 +331,7 @@ app.post("/api/mines/reveal", (req, res) =>
   wrap(res, async () => {
     const round = rounds.get(String(req.body?.roundId));
     if (!round) throw new Error("No such round");
+    assertOwner(round, req);
     const tile = Math.trunc(Number(req.body?.tile));
     if (!(tile >= 0 && tile < MINES_TILES)) throw new Error("Bad tile");
     if (round.revealed.includes(tile)) throw new Error("Already revealed");
@@ -329,6 +359,7 @@ app.post("/api/mines/cashout", (req, res) =>
   wrap(res, async () => {
     const round = rounds.get(String(req.body?.roundId));
     if (!round) throw new Error("No such round");
+    assertOwner(round, req);
     if (round.revealed.length < 1) throw new Error("Reveal at least one tile first");
     const mult = minesMultiplier(round.revealed.length, round.mines);
     const payout = Math.floor(round.stakeCents * mult);
@@ -402,6 +433,7 @@ app.post("/api/memory/flip", (req, res) =>
   wrap(res, async () => {
     const r = memRounds.get(String(req.body?.roundId));
     if (!r) throw new Error("No such game");
+    assertOwner(r, req);
     const idx = Math.trunc(Number(req.body?.index));
     if (!(idx >= 0 && idx < 2 * r.pairs)) throw new Error("Bad card");
     if (r.matched.has(idx)) throw new Error("Already matched");
@@ -469,6 +501,7 @@ app.post("/api/hilo/guess", (req, res) =>
   wrap(res, async () => {
     const r = hiloRounds.get(String(req.body?.roundId));
     if (!r || r.ended) throw new Error("Round is over");
+    assertOwner(r, req);
     const choice = String(req.body?.choice);
     if (choice !== "higher" && choice !== "lower") throw new Error("Bad guess");
     if (r.pos + 1 >= 52) throw new Error("Deck exhausted — cash out");
@@ -493,6 +526,7 @@ app.post("/api/hilo/cashout", (req, res) =>
   wrap(res, async () => {
     const r = hiloRounds.get(String(req.body?.roundId));
     if (!r || r.ended) throw new Error("Round is over");
+    assertOwner(r, req);
     r.ended = true;
     const mult = floor2(r.multiplier);
     const payout = Math.floor(r.stakeCents * mult);
@@ -528,6 +562,7 @@ app.post("/api/vpoker/draw", (req, res) =>
   wrap(res, async () => {
     const r = vpRounds.get(String(req.body?.roundId));
     if (!r) throw new Error("Round is over");
+    assertOwner(r, req);
     const holds = Array.isArray(req.body?.holds) ? req.body.holds : [];
     for (let i = 0; i < 5; i++) if (!holds[i]) r.hand[i] = r.deck[r.next++];
     const evalResult = pokerEvaluate(r.hand);
@@ -561,9 +596,10 @@ function bjResolve(r: BjRound) {
   bjRounds.delete(r.id); bjActive.delete(r.playerId);
   return { done: true, player: r.player, dealer: r.dealer, playerValue: pv, dealerValue: dv, outcome, payoutCents: payout, balance, betCents: wager };
 }
-const bjActiveRound = (id: unknown) => {
-  const r = bjRounds.get(String(id));
+const bjActiveRound = (req: express.Request) => {
+  const r = bjRounds.get(String(req.body?.roundId));
   if (!r) throw new Error("Hand is over");
+  assertOwner(r, req);
   return r;
 };
 
@@ -597,16 +633,16 @@ app.post("/api/bj/deal", (req, res) =>
 
 app.post("/api/bj/hit", (req, res) =>
   wrap(res, async () => {
-    const r = bjActiveRound(req.body?.roundId);
+    const r = bjActiveRound(req);
     r.player.push(r.deck[r.next++]);
     if (handValue(r.player) > 21) return bjResolve(r);
     return { done: false, player: r.player, playerValue: handValue(r.player), canDouble: false };
   }),
 );
-app.post("/api/bj/stand", (req, res) => wrap(res, async () => bjResolve(bjActiveRound(req.body?.roundId))));
+app.post("/api/bj/stand", (req, res) => wrap(res, async () => bjResolve(bjActiveRound(req))));
 app.post("/api/bj/double", (req, res) =>
   wrap(res, async () => {
-    const r = bjActiveRound(req.body?.roundId);
+    const r = bjActiveRound(req);
     if (r.player.length !== 2) throw new Error("Can only double on your first move");
     debitExtra(r.playerId, r.stakeCents);
     r.doubled = true;
