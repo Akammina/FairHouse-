@@ -1,40 +1,35 @@
-# Deploying FairHouse (free, on Render)
+# Deploying
 
-FairHouse is a plain Node + Express app (SQLite, no external services), so it
-deploys anywhere that runs Node. These steps use **Render's free tier** (no card).
+FairHouse is a Node + Express app with an embedded SQLite database and no
+external dependencies, so it runs on any host with Node 20+. A `render.yaml`
+blueprint is included for Render.
 
-## 1. Put the code on GitHub
+## Render
 
-Easiest (VS Code is already open):
-- Source Control panel → **Publish to GitHub** → choose **Public** → it creates the
-  repo and pushes for you (it handles the login in your browser).
+1. Push the repo to GitHub.
+2. New → Blueprint, select the repo. `render.yaml` sets the build command
+   (`npm install --include=dev && npm run build`) and start command (`npm start`).
+3. The first build takes a couple of minutes; Render then assigns a URL such as
+   `https://fairhouse.onrender.com`.
 
-Or from a terminal, after creating an empty repo on github.com:
+Without the blueprint: New → Web Service, same build and start commands, Node 22.
+
+## Anywhere else
+
 ```bash
-cd casino
-git remote add origin https://github.com/<you>/fairhouse.git
-git branch -M main
-git push -u origin main
+npm install
+npm run build
+npm start        # listens on $PORT, defaults to 3300
 ```
-
-## 2. Deploy on Render
-
-1. Sign up at **render.com** (log in with GitHub — free).
-2. **New ▸ Blueprint**, pick the `fairhouse` repo. Render reads `render.yaml` and
-   fills everything in. Click **Apply**.
-   - (Or **New ▸ Web Service** → pick the repo → Build: `npm install --include=dev && npm run build`,
-     Start: `npm start`.)
-3. Wait ~2–4 minutes for the first build. You get a URL like
-   `https://fairhouse.onrender.com` — that's your live link.
 
 ## Notes
 
-- **Cold start:** the free tier sleeps after ~15 min idle; the first visit after
-  that takes ~30–50s to wake, then it's fast. Fine for a portfolio demo.
-- **Data is ephemeral:** the SQLite file resets on redeploy/sleep. That's fine —
-  it's play money and a per-browser guest wallet.
-- **If the build ever fails on `better-sqlite3`,** switch the service to a Docker
-  runtime with this `Dockerfile`:
+- On Render's free tier the instance sleeps after ~15 minutes idle and wakes on
+  the next request after a short delay.
+- The SQLite file lives on the instance's local disk and is recreated on
+  redeploy. Balances are per-browser play money, so this is expected.
+- If `better-sqlite3` fails to build on the host, deploy with Docker instead:
+
   ```dockerfile
   FROM node:22
   WORKDIR /app
@@ -44,5 +39,3 @@ git push -u origin main
   RUN npm run build
   CMD ["npm", "start"]
   ```
-
-Then put the live URL (and the GitHub repo) on your CV.
