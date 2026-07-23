@@ -1,11 +1,13 @@
 /**
- * FairHouse server — one wallet, one fairness engine, four games.
+ * FairHouse server — one wallet, one fairness engine, thirteen games.
  *
- * Instant games (dice, coinflip, limbo) resolve in a single request: derive the
- * outcome from the committed seed, debit the stake and advance the nonce
- * atomically, credit any win. Mines is a multi-step round: the mine layout is
- * fixed from the seed at start (so it's provably fair), then each reveal checks
- * against it until the player cashes out or hits a mine.
+ * Instant games (dice, coinflip, slots, plinko, roulette, wheel, keno) resolve
+ * in a single request: derive the outcome from the committed seed, debit the
+ * stake and advance the nonce atomically, credit any win. Crash is a live,
+ * SSE-driven round. Mines, Memory, Hi-Lo, Video Poker and Blackjack are
+ * stateful multi-step rounds: the seed fixes the layout/deck at start (so it's
+ * provably fair), then each action checks against it until the player cashes
+ * out, busts, or the hand resolves.
  */
 import express from "express";
 import helmet from "helmet";

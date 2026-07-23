@@ -109,7 +109,7 @@ function renderLobby(root) {
   root.innerHTML = `
     <div class="lobby-hero">
       <h1>FairHouse</h1>
-      <p>Eight games, one wallet — every outcome cryptographically provable.</p>
+      <p>Thirteen games, one wallet — every outcome cryptographically provable.</p>
     </div>
     <div class="game-grid">
       ${games.map((g) => `

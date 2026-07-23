@@ -2,7 +2,7 @@
   "name": "fairhouse",
   "version": "1.0.0",
   "type": "module",
-  "description": "FairHouse — a provably-fair casino platform (dice, coinflip, limbo, mines)",
+  "description": "FairHouse — a provably-fair casino platform with 13 games on one shared wallet (dice, coinflip, crash, mines, plinko, roulette, wheel, keno, memory, slots, hi-lo, video poker, blackjack)",
   "engines": {
     "node": ">=20"
   },
