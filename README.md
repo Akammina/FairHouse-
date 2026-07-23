@@ -89,7 +89,3 @@ npm test         # unit tests
 - Commit to a chain of future server seeds up front.
 - Real accounts instead of a per-browser wallet.
 - Leaderboards and per-game stats.
-
----
-
-Built by Akam Nabard Mohammed — [Akamnabard11@gmail.com](mailto:Akamnabard11@gmail.com)
