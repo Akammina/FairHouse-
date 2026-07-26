@@ -17,8 +17,24 @@ import { renderSlots } from "./games/slots.js";
 import { renderHilo } from "./games/hilo.js";
 import { renderVpoker } from "./games/vpoker.js";
 import { renderBlackjack } from "./games/blackjack.js";
+import { renderLeaderboard } from "./leaderboard.js";
+import { bigWin } from "./bigwin.js";
+import { startLobbyFx } from "./lobbyfx.js";
 
 const $ = (id) => document.getElementById(id);
+
+// ---------- Theme (Gold / Neon / Emerald) ----------
+const THEMES = ["gold", "neon", "emerald"];
+const applyTheme = (t) => { document.documentElement.dataset.theme = t; localStorage.setItem("fairhouse_theme", t); };
+applyTheme(localStorage.getItem("fairhouse_theme") || "gold");
+
+const _loadStart = performance.now();
+function hideLoader() {
+  const el = $("loader");
+  if (!el) return;
+  const wait = Math.max(0, 850 - (performance.now() - _loadStart)); // show the splash at least ~0.85s
+  setTimeout(() => { el.classList.add("hide"); setTimeout(() => el.remove(), 600); }, wait);
+}
 
 const state = { playerId: null, balance: 0, serverSeedHash: "", clientSeed: "", nonce: 0, recent: [], activeMines: null };
 
@@ -66,6 +82,12 @@ const ctx = {
     if (typeof res.balance === "number") { state.balance = res.balance; renderBalance(); }
     if (typeof res.nonce === "number") { state.nonce = res.nonce + 1; renderModal(); }
     if (typeof res.win === "boolean") Sound[res.win ? "win" : "lose"]();
+    // Big-win celebration on a large net win, in any game.
+    if (res.win && typeof res.payoutCents === "number" && typeof res.betCents === "number") {
+      const net = res.payoutCents - res.betCents;
+      if (net >= 80000) bigWin({ netCents: net, label: "MEGA WIN!" });
+      else if (net >= 15000) bigWin({ netCents: net, label: "BIG WIN!" });
+    }
   },
   addRecent(entry) { state.recent.unshift(entry); },
 };
@@ -77,7 +99,7 @@ document.addEventListener("pointerdown", (e) => {
 }, { passive: true });
 
 // ---------- Router ----------
-const routes = { "": renderLobby, dice: renderDice, coinflip: renderCoinflip, crash: renderCrash, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory, slots: renderSlots, hilo: renderHilo, vpoker: renderVpoker, blackjack: renderBlackjack };
+const routes = { "": renderLobby, leaderboard: renderLeaderboard, dice: renderDice, coinflip: renderCoinflip, crash: renderCrash, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory, slots: renderSlots, hilo: renderHilo, vpoker: renderVpoker, blackjack: renderBlackjack };
 function route() {
   cleanups.forEach((fn) => { try { fn(); } catch { /* ignore */ } }); // tear down the previous view
   cleanups = [];
@@ -90,7 +112,8 @@ function route() {
 }
 window.addEventListener("hashchange", route);
 
-function renderLobby(root) {
+function renderLobby(root, ctx) {
+  if (ctx) startLobbyFx(ctx); // raining coins + chips behind the lobby
   const games = [
     { key: "dice", icon: "🎲", name: "Dice", tag: "Roll under your target to win.", accent: "var(--dice)" },
     { key: "coinflip", icon: "🪙", name: "Coinflip", tag: "Heads or tails, double or nothing.", accent: "var(--coin)" },
@@ -108,8 +131,14 @@ function renderLobby(root) {
   ];
   root.innerHTML = `
     <div class="lobby-hero">
-      <h1>FairHouse</h1>
+      <div class="hero-badge"><span class="live-dot"></span> LIVE · PROVABLY FAIR</div>
+      <h1 class="hero-title">FairHouse</h1>
       <p>Thirteen games, one wallet — every outcome cryptographically provable.</p>
+      <div class="hero-stats">
+        <div class="hstat"><span class="hv">13</span><span class="hl">Games</span></div>
+        <div class="hstat"><span class="hv">1%</span><span class="hl">House edge</span></div>
+        <div class="hstat"><span class="hv">100%</span><span class="hl">Verifiable</span></div>
+      </div>
     </div>
     <div class="game-grid">
       ${games.map((g) => `
@@ -120,6 +149,30 @@ function renderLobby(root) {
           <div class="play">Play ${g.name} →</div>
         </a>`).join("")}
     </div>`;
+
+  // Count-up the hero stat tiles.
+  root.querySelectorAll(".hv").forEach((el) => {
+    const m = el.textContent.match(/^(\d+)(.*)$/);
+    if (!m) return;
+    const target = +m[1], suffix = m[2], start = performance.now(), dur = 900;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / dur);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - t, 3))) + suffix;
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+
+  // 3D tilt: cards lean toward the cursor.
+  root.querySelectorAll(".game-card").forEach((card) => {
+    card.addEventListener("pointermove", (e) => {
+      const r = card.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      card.style.transform = `perspective(650px) rotateX(${(-py * 8).toFixed(2)}deg) rotateY(${(px * 8).toFixed(2)}deg)`;
+    });
+    card.addEventListener("pointerleave", () => { card.style.transform = ""; });
+  });
 }
 
 // ---------- Provably-fair modal ----------
@@ -230,8 +283,66 @@ const soundBtn = $("soundBtn");
 if (Sound.muted) soundBtn.textContent = "🔇";
 soundBtn.addEventListener("click", () => { soundBtn.textContent = Sound.toggle() ? "🔇" : "🔊"; });
 
+// ---------- Theme switcher ----------
+$("themeBtn")?.addEventListener("click", () => {
+  const cur = document.documentElement.dataset.theme || "gold";
+  applyTheme(THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length]);
+  Sound.click?.();
+});
+
+// ---------- Free credits (play-money top-up) ----------
+const topupBtn = $("topupBtn");
+topupBtn?.addEventListener("click", async () => {
+  try {
+    const r = await api("/api/topup", {});
+    state.balance = r.balance;
+    renderBalance();
+    Sound.cashout?.();
+  } catch (e) { /* ignore */ }
+});
+
+// ---------- Live "Big Wins" ticker ----------
+const TICK_ICON = { dice: "🎲", coinflip: "🪙", crash: "📈", mines: "💣", plinko: "🔻", roulette: "🎡", wheel: "🎯", keno: "🔢", memory: "🃏", slots: "🎰", hilo: "🔼", vpoker: "🂡", blackjack: "♠️" };
+function initTicker() {
+  const bar = $("ticker"), track = $("tickerTrack");
+  if (!bar || !track) return;
+  const wins = [];
+  const entry = (w) => `<span class="tk ${w.netCents >= 50000 ? "big" : ""}">${TICK_ICON[w.game] || "🎲"} <b>${w.alias}</b> won <span class="tk-amt">+${money(w.netCents)}</span> on ${w.game}</span>`;
+  const render = () => {
+    if (!wins.length) return;
+    bar.hidden = false;
+    const html = wins.map(entry).join("");
+    track.innerHTML = html + html; // duplicated for a seamless loop
+    track.style.animationDuration = `${Math.max(20, wins.length * 3.2)}s`;
+  };
+  try {
+    const es = new EventSource("/api/feed");
+    es.onmessage = (e) => {
+      wins.unshift(JSON.parse(e.data));
+      if (wins.length > 25) wins.pop();
+      render();
+    };
+  } catch { /* feed unavailable — ticker stays hidden */ }
+}
+
+// ---------- Progressive jackpot (cosmetic, always climbing) ----------
+function initJackpot() {
+  const el = $("jackpot");
+  if (!el) return;
+  let v = Number(localStorage.getItem("fairhouse_jackpot")) || 2437815;
+  const fmt = (n) => Math.floor(n).toLocaleString("en-US");
+  el.textContent = fmt(v);
+  setInterval(() => {
+    v += Math.random() * 14 + 1;
+    el.textContent = fmt(v);
+    localStorage.setItem("fairhouse_jackpot", String(Math.floor(v)));
+  }, 150);
+}
+
 // ---------- Init ----------
 initBackground();
+initTicker();
+initJackpot();
 (async () => {
   try {
     const s = await api("/api/session", { playerId: localStorage.getItem("fairhouse_pid") });
@@ -243,5 +354,7 @@ initBackground();
     route();
   } catch (e) {
     $("view").innerHTML = `<p style="color:var(--lose)">Couldn't start a session: ${e.message}</p>`;
+  } finally {
+    hideLoader();
   }
 })();

@@ -11,6 +11,8 @@ import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { sha256Hex } from "../shared/provablyFair.js";
+import { alias } from "./alias.js";
+import { broadcastWin } from "./feed.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const db = new Database(join(__dirname, "../../fairhouse.db"));
@@ -82,6 +84,15 @@ export async function ensureSession(playerId?: string) {
 export function getPlayer(playerId: string): PlayerRow | undefined {
   return selectPlayer.get(playerId);
 }
+
+const setBalance = db.prepare("UPDATE players SET balance = ? WHERE id = ?");
+/** Play-money top-up: refill to the starting balance if the player is below it. */
+export function topUp(playerId: string): number {
+  const p = selectPlayer.get(playerId);
+  if (!p) throw new Error("Unknown player");
+  if (p.balance < STARTING_BALANCE) setBalance.run(STARTING_BALANCE, playerId);
+  return getBalance(playerId);
+}
 export function getBalance(playerId: string): number {
   return selectPlayer.get(playerId)?.balance ?? 0;
 }
@@ -133,6 +144,59 @@ export function recordBet(
   clientSeed: string,
 ): void {
   insertBet.run(playerId, game, nonce, detail, betCents, payoutCents, win ? 1 : 0, serverSeedHash, clientSeed, Date.now());
+  // Push any real win to the live feed.
+  if (win && payoutCents > betCents && betCents > 0) {
+    broadcastWin({
+      alias: alias(playerId),
+      game,
+      netCents: payoutCents - betCents,
+      mult: Math.round((payoutCents / betCents) * 100) / 100,
+      ts: Date.now(),
+    });
+  }
+}
+
+/** Recent winning bets across all players — seeds the live ticker on connect. */
+export function recentWins(limit = 15) {
+  const rows = db
+    .prepare(
+      `SELECT player_id, game, bet_cents, payout_cents, created_at
+       FROM bets WHERE win = 1 AND payout_cents > bet_cents ORDER BY id DESC LIMIT ?`,
+    )
+    .all(limit) as { player_id: string; game: string; bet_cents: number; payout_cents: number; created_at: number }[];
+  return rows.map((r) => ({
+    alias: alias(r.player_id),
+    game: r.game,
+    netCents: r.payout_cents - r.bet_cents,
+    mult: Math.round((r.payout_cents / r.bet_cents) * 100) / 100,
+    ts: r.created_at,
+  }));
+}
+
+/** Leaderboard boards computed from the bets + players tables. */
+export function leaderboard() {
+  const biggestWins = (db
+    .prepare(
+      `SELECT player_id, game, bet_cents, payout_cents
+       FROM bets WHERE win = 1 ORDER BY (payout_cents - bet_cents) DESC LIMIT 10`,
+    )
+    .all() as { player_id: string; game: string; bet_cents: number; payout_cents: number }[])
+    .map((r) => ({ alias: alias(r.player_id), game: r.game, netCents: r.payout_cents - r.bet_cents }));
+
+  const topMultipliers = (db
+    .prepare(
+      `SELECT player_id, game, bet_cents, payout_cents
+       FROM bets WHERE win = 1 AND bet_cents > 0 ORDER BY (CAST(payout_cents AS REAL) / bet_cents) DESC LIMIT 10`,
+    )
+    .all() as { player_id: string; game: string; bet_cents: number; payout_cents: number }[])
+    .map((r) => ({ alias: alias(r.player_id), game: r.game, mult: Math.round((r.payout_cents / r.bet_cents) * 100) / 100 }));
+
+  const richest = (db
+    .prepare(`SELECT id, balance FROM players ORDER BY balance DESC LIMIT 10`)
+    .all() as { id: string; balance: number }[])
+    .map((r) => ({ alias: alias(r.id), balance: r.balance }));
+
+  return { biggestWins, topMultipliers, richest };
 }
 
 export async function rotateSeed(playerId: string, newClientSeed?: string) {

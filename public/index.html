@@ -22,10 +22,23 @@
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
+  <!-- Casino splash loader (removed once the session connects) -->
+  <div id="loader" class="loader">
+    <div class="loader-wheel">
+      <div class="lw-ring"></div>
+      <div class="lw-suits"><span style="--i:0">♠</span><span style="--i:1">♥</span><span style="--i:2">♦</span><span style="--i:3">♣</span></div>
+      <div class="lw-center">♠</div>
+    </div>
+    <div class="loader-word">FAIRHOUSE</div>
+    <div class="loader-bar"><span></span></div>
+    <div class="loader-sub">shuffling the deck…</div>
+  </div>
+
   <header class="topbar">
     <a class="brand" href="#/"><span class="logo">♠ FAIRHOUSE</span><span class="tag">provably fair</span></a>
     <nav class="nav" id="nav">
       <a href="#/">Lobby</a>
+      <a href="#/leaderboard">🏆 Leaderboard</a>
       <a href="#/dice">Dice</a>
       <a href="#/coinflip">Coinflip</a>
       <a href="#/crash">Crash</a>
@@ -41,11 +54,20 @@
       <a href="#/blackjack">Blackjack</a>
     </nav>
     <div class="top-right">
+      <div class="jackpot"><span class="jp-label">Mega Jackpot</span><span id="jackpot" class="jp-amount">—</span></div>
+      <button id="themeBtn" class="fair-btn icon-btn" title="Switch theme (Gold / Neon / Emerald)">🎨</button>
       <button id="soundBtn" class="fair-btn icon-btn" title="Toggle sound" aria-label="Toggle sound">🔊</button>
       <button id="fairBtn" class="fair-btn">🔒 Provably Fair</button>
       <div class="wallet"><span class="wallet-label">Balance</span><span id="balance" class="wallet-amount">—</span></div>
+      <button id="topupBtn" class="topup-btn" title="Get free credits">＋ Credits</button>
     </div>
   </header>
+
+  <!-- Live "Big Wins" ticker (fed by /api/feed over SSE) -->
+  <div id="ticker" class="ticker" hidden>
+    <span class="ticker-live"><span class="live-dot"></span> BIG WINS</span>
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
 
   <main id="view" class="view"></main>
 

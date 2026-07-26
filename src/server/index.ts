@@ -33,8 +33,9 @@ import {
 } from "../shared/games.js";
 import {
   ensureSession, getPlayer, getBalance, debitStake, debitExtra, credit, recordBet,
-  rotateSeed, recentBets,
+  rotateSeed, recentBets, recentWins, leaderboard, topUp,
 } from "./ledger.js";
+import { addFeedClient } from "./feed.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -88,6 +89,21 @@ app.post("/api/rotate", (req, res) =>
   wrap(res, async () => {
     requirePlayer(req.body?.playerId);
     return rotateSeed(String(req.body.playerId), req.body?.clientSeed ? String(req.body.clientSeed) : undefined);
+  }),
+);
+
+// ---------- Social: live win feed + leaderboards ----------
+app.get("/api/feed", (req, res) => {
+  res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive", "X-Accel-Buffering": "no" });
+  res.flushHeaders?.();
+  for (const w of recentWins()) res.write(`data: ${JSON.stringify(w)}\n\n`);
+  addFeedClient(res);
+});
+app.get("/api/leaderboard", (_req, res) => res.json(leaderboard()));
+app.post("/api/topup", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    return { balance: topUp(p.id) };
   }),
 );
 
