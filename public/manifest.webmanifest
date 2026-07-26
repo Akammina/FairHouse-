@@ -1,0 +1,16 @@
+{
+  "name": "FairHouse Casino",
+  "short_name": "FairHouse",
+  "description": "A provably-fair casino — 13 games, one wallet. Every outcome verifiable.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090d12",
+  "theme_color": "#0b0f15",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

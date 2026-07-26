@@ -59,18 +59,25 @@ export function cardHTML(c, extra = "") {
 export function stakeField(id) {
   return `<div class="fld"><span>Bet amount</span>
     <div class="stake-row">
-      <input id="${id}" class="input" type="number" min="0.01" step="1" value="10" />
+      <input id="${id}" class="input" type="number" min="0.01" step="1" value="10" inputmode="decimal" />
       <button class="mini" data-stake="half">½</button>
       <button class="mini" data-stake="double">2×</button>
+    </div>
+    <div class="chip-row">
+      ${[10, 50, 100, 500].map((v) => `<button class="chip-bet" data-set="${v}">${v}</button>`).join("")}
     </div></div>`;
 }
 export function wireStake(id) {
   const input = document.getElementById(id);
+  const bump = () => { input.classList.remove("bet-pulse"); void input.offsetWidth; input.classList.add("bet-pulse"); input.dispatchEvent(new Event("input")); };
   document.querySelectorAll("[data-stake]").forEach((b) =>
     b.addEventListener("click", () => {
       const v = Number(input.value) || 0;
       input.value = Math.max(0.01, b.dataset.stake === "half" ? v / 2 : v * 2).toFixed(2);
-      input.dispatchEvent(new Event("input"));
+      bump();
     }),
+  );
+  document.querySelectorAll("[data-set]").forEach((b) =>
+    b.addEventListener("click", () => { input.value = Number(b.dataset.set).toFixed(2); bump(); }),
   );
 }

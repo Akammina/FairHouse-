@@ -131,7 +131,11 @@ a { color: inherit; text-decoration: none; }
   .mem-over .btn { min-width: 150px; }
 }
 /* Never let anything cause sideways page scroll (clip, not hidden, to keep the sticky header working) */
-body { overflow-x: clip; }
+body { overflow-x: clip; overscroll-behavior-y: none; } /* no pull-to-refresh bounce → app feel */
+/* App-like: no long-press text selection / callout menus on controls (inputs & seed text keep it) */
+.topbar, .botnav, .nav, .game-title, .btn, .mini, .chip-bet, .tw-tile, .tw-diff, .knum, .pick, .hero-title, .hstat, .hero-badge, .ticker, .lb-card h2, .lb-rank, .slot-machine, .game-card {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
 canvas { max-width: 100%; }
 .game-card h3 { margin: 16px 0 4px; font-size: 18px; }
 .game-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
@@ -149,8 +153,8 @@ canvas { max-width: 100%; }
 @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(1.3); } }
 
 /* Generic game layout */
-.game { display: grid; grid-template-columns: 1fr 300px; gap: 18px; }
-@media (max-width: 860px) { .game { grid-template-columns: 1fr; } }
+.game { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; }
+@media (max-width: 860px) { .game { grid-template-columns: minmax(0, 1fr); } }
 .card { background: rgba(17, 24, 32, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 14px; }
 .stage { padding: 24px; }
 .game-title { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; font-size: 20px; }
@@ -164,6 +168,13 @@ canvas { max-width: 100%; }
 .stake-row .input { flex: 1; text-align: center; }
 .mini { background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 0 12px; font-weight: 700; cursor: pointer; }
 .mini:hover { color: var(--ink); }
+/* Chip quick-bets — tap a denomination to set the stake */
+.chip-row { display: flex; gap: 6px; margin-top: 8px; }
+.chip-bet { flex: 1; min-width: 44px; padding: 10px 0; border-radius: 999px; font-weight: 800; font-size: 13px; cursor: pointer; font-variant-numeric: tabular-nums; color: var(--ink); background: var(--panel-2); border: 2px dashed color-mix(in srgb, var(--accent, var(--gold)) 45%, var(--line)); transition: transform 0.1s, background 0.12s, border-color 0.12s; }
+.chip-bet:hover { background: var(--panel-3); border-color: var(--accent, var(--gold)); }
+.chip-bet:active { transform: scale(0.9); }
+.bet-pulse { animation: betPulse 0.35s ease; }
+@keyframes betPulse { 0% { box-shadow: 0 0 0 0 rgba(var(--glow), 0.5); } 100% { box-shadow: 0 0 0 7px rgba(var(--glow), 0); } }
 .stat-row { display: flex; gap: 8px; }
 .stat { flex: 1; background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 10px; text-align: center; }
 .stat .l { display: block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
@@ -464,9 +475,75 @@ canvas { max-width: 100%; }
 @keyframes ldSweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
 .loader-sub { color: var(--muted); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; animation: livePulse 1.8s ease-in-out infinite; }
 
+/* ===== Mobile UX polish ===== */
+/* Kill the 300ms tap delay and the grey tap-flash on iOS — makes taps feel instant. */
+a, button, input, .game-card, .lvl, .tw-tile, .tw-diff, .knum, .pick, .chip-bet, .mini, .mem-card {
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+/* Press feedback on touch (hover states don't fire on a tap). */
+.mini:active, .tw-diff:active, .fair-btn:active, .topup-btn:active, .nav a:active { transform: scale(0.96); }
+.btn:active:not(:disabled) { transform: translateY(0) scale(0.985); }
+.game-card:active { transform: scale(0.99); }
+.tw-row.active .tw-tile:not(:disabled):active { transform: scale(0.93); background: var(--panel-3); }
+@media (max-width: 560px) {
+  .lobby-hero { margin: 14px 0 26px; }
+  .hstat { padding: 10px 16px; min-width: 80px; }
+  .hstat .hv { font-size: 20px; }
+  .hero-badge { font-size: 10px; }
+  .jp-amount { font-size: 14px; }
+  .topup-btn { padding: 8px 10px; }
+}
+
+/* PWA safe areas (notch / status bar / home indicator) */
+.topbar { padding-top: calc(12px + env(safe-area-inset-top)); }
+@media (max-width: 760px) { .topbar { padding-top: calc(10px + env(safe-area-inset-top)); } }
+.loader { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+
+/* Bottom tab bar — thumb navigation. Only in the installed (standalone) app, so
+   it never fights the Safari toolbar; in-browser users keep the top nav. */
+.botnav { display: none; }
+@media (max-width: 760px) and (display-mode: standalone) {
+  .botnav { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    background: rgba(11, 15, 21, 0.94); backdrop-filter: blur(14px); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom); }
+  .botnav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 0 7px; background: none; border: 0; color: var(--muted); font-size: 10px; letter-spacing: 0.02em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .botnav-item .bi { font-size: 21px; transition: transform 0.15s; }
+  .botnav-item:active .bi { transform: scale(0.85); }
+  .botnav-item.active { color: var(--gold); }
+  .botnav-item.active .bi { transform: translateY(-1px); filter: drop-shadow(0 0 8px rgba(var(--glow), 0.55)); }
+  /* keep content clear of the bar */
+  .view { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-title, .lobby-hero::before, .live-dot, .btn::after, .game-card::after, .bw-rays, .bw-label { animation: none !important; }
 }
+
+/* Dragon Tower */
+.tw-diffs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.tw-diffs.locked { opacity: 0.5; pointer-events: none; }
+.tw-diff { flex: 1; min-width: 70px; display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px; color: var(--muted); cursor: pointer; }
+.tw-diff b { color: var(--ink); font-size: 13px; }
+.tw-diff span { font-size: 10px; }
+.tw-diff.sel { border-color: var(--accent); color: var(--ink); box-shadow: 0 0 0 1px var(--accent) inset; }
+.tower { display: flex; flex-direction: column; gap: 6px; }
+.tw-row { display: flex; align-items: center; gap: 10px; opacity: 0.5; transition: opacity 0.2s; }
+.tw-row.active { opacity: 1; }
+.tw-row.done { opacity: 0.85; }
+.tw-mult { width: 58px; text-align: right; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.tw-row.active .tw-mult { color: var(--accent); font-weight: 700; }
+.tw-tiles { display: flex; gap: 6px; flex: 1; }
+.tw-tile { flex: 1; aspect-ratio: 1 / 1; max-height: 54px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--muted); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; cursor: default; transition: transform 0.12s, background 0.12s, box-shadow 0.12s; }
+.tw-row.active .tw-tile:not(:disabled) { cursor: pointer; border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.tw-row.active .tw-tile:not(:disabled):hover { transform: translateY(-2px); background: var(--panel-3); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+.tw-tile.safe { border-color: var(--win); }
+.tw-tile.trap { border-color: var(--lose); }
+.tw-tile.picked { box-shadow: 0 0 0 2px var(--win) inset; }
+.tw-tile.boom { box-shadow: 0 0 0 2px var(--lose) inset; animation: boomShake 0.4s ease; }
+@keyframes boomShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.tw-tile.faded { opacity: 0.42; }
+.tw-actions { display: flex; gap: 10px; margin-top: 14px; }
+.tw-actions .btn { flex: 1; }
 
 /* Crash */
 .crash-wrap { position: relative; aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; background: linear-gradient(180deg, #0c1220, #0a0e17); }

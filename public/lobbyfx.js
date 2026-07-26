@@ -16,6 +16,7 @@ export function startLobbyFx(ctx) {
     ["#a855f7", "#e9d5ff"], ["#0ea5b7", "#a5f3fc"], ["#334155", "#94a3b8"],
   ];
 
+  const mobile = window.innerWidth < 640; // lighter on phones for smooth 60fps
   let W = 0, H = 0, items = [], raf = 0, last = performance.now(), running = true;
 
   function resize() {
@@ -37,7 +38,7 @@ export function startLobbyFx(ctx) {
 
   resize();
   window.addEventListener("resize", resize);
-  items = Array.from({ length: Math.max(14, Math.round(W / 68)) }, () => spawn(false));
+  items = Array.from({ length: mobile ? 10 : Math.max(14, Math.round(W / 68)) }, () => spawn(false));
 
   function coin(it) {
     g.save(); g.translate(it.x, it.y); g.rotate(it.rot);
@@ -65,7 +66,7 @@ export function startLobbyFx(ctx) {
   function frame(now) {
     if (!running) return;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    g.clearRect(0, 0, W, H); g.shadowBlur = 12;
+    g.clearRect(0, 0, W, H); g.shadowBlur = mobile ? 0 : 12; // shadowBlur is the expensive bit
     for (const it of items) {
       it.y += it.vy * dt; it.rot += it.vr * dt;
       it.x += Math.sin(it.phase + now / 1000 * it.sway) * 0.35;

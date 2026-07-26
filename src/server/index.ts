@@ -21,6 +21,7 @@ import {
   coinResult, COIN_MULTIPLIER, type Coin,
   limboResult, crashMultiplierAt,
   minesLayout, minesMultiplier, MINES_TILES,
+  towerLayout, towerMultiplier, TOWER_DIFF, TOWER_ROWS,
   plinkoPath, plinkoBucket, plinkoMultiplier,
   rouletteNumber, rouletteColor, roulettePayout, type RouletteBet,
   wheelSegment, wheelMultiplier, WHEEL_SEGMENTS,
@@ -410,6 +411,84 @@ function activeMinesFor(playerId: string) {
     clientSeed: r.clientSeed,
   };
 }
+
+// ---------- Dragon Tower (stateful climb) ----------
+interface TowerRound {
+  playerId: string; stakeCents: number; diff: string; tiles: number; traps: number; rows: number;
+  layout: number[][]; level: number; nonce: number; serverSeedHash: string; clientSeed: string;
+}
+const towerRounds = new Map<string, TowerRound>();
+const towerActive = new Map<string, string>();
+function endTower(roundId: string, playerId: string): void { towerRounds.delete(roundId); towerActive.delete(playerId); }
+
+app.post("/api/tower/start", (req, res) =>
+  wrap(res, async () => {
+    const p = requirePlayer(req.body?.playerId);
+    const diff = String(req.body?.difficulty);
+    const d = TOWER_DIFF[diff];
+    const bet = stakeCents(req.body?.stake);
+    if (!d) throw new Error("Pick a difficulty");
+    if (!(bet > 0)) throw new Error("Invalid stake");
+    const prev = towerActive.get(p.id); // abandoning a climb forfeits its stake
+    if (prev) { towerRounds.delete(prev); towerActive.delete(p.id); }
+    debitStake(p.id, p.nonce, bet);
+    const layout = await towerLayout(await betHmac(p.server_seed, p.client_seed, p.nonce), d.tiles, d.traps, TOWER_ROWS);
+    const roundId = randomBytes(8).toString("hex");
+    towerRounds.set(roundId, { playerId: p.id, stakeCents: bet, diff, tiles: d.tiles, traps: d.traps, rows: TOWER_ROWS, layout, level: 0, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed });
+    towerActive.set(p.id, roundId);
+    return {
+      roundId, difficulty: diff, tiles: d.tiles, traps: d.traps, rows: TOWER_ROWS, betCents: bet, balance: getBalance(p.id),
+      multipliers: Array.from({ length: TOWER_ROWS }, (_, i) => towerMultiplier(diff, i + 1)),
+      nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed,
+    };
+  }),
+);
+
+app.post("/api/tower/pick", (req, res) =>
+  wrap(res, async () => {
+    const round = towerRounds.get(String(req.body?.roundId));
+    if (!round) throw new Error("No such climb");
+    assertOwner(round, req);
+    const tile = Math.trunc(Number(req.body?.tile));
+    if (!(tile >= 0 && tile < round.tiles)) throw new Error("Bad tile");
+    const rowTraps = round.layout[round.level];
+
+    if (rowTraps.includes(tile)) {
+      recordBet(round.playerId, "tower", round.nonce, `${round.diff}, fell on row ${round.level + 1}`, round.stakeCents, 0, false, round.serverSeedHash, round.clientSeed);
+      const layout = round.layout;
+      endTower(String(req.body.roundId), round.playerId);
+      return { trap: true, row: round.level, tile, betCents: round.stakeCents, win: false, layout, multiplier: 0, balance: getBalance(round.playerId) };
+    }
+
+    round.level += 1;
+    const mult = towerMultiplier(round.diff, round.level);
+    if (round.level === round.rows) {
+      const payout = Math.floor(round.stakeCents * mult);
+      const balance = credit(round.playerId, payout);
+      recordBet(round.playerId, "tower", round.nonce, `${round.diff}, reached the top @${mult}×`, round.stakeCents, payout, true, round.serverSeedHash, round.clientSeed);
+      const layout = round.layout;
+      endTower(String(req.body.roundId), round.playerId);
+      return { trap: false, row: round.level - 1, tile, rowTraps, cleared: true, level: round.level, multiplier: mult, betCents: round.stakeCents, win: payout > round.stakeCents, payoutCents: payout, balance, layout };
+    }
+    return { trap: false, row: round.level - 1, tile, rowTraps, level: round.level, multiplier: mult, nextMultiplier: towerMultiplier(round.diff, round.level + 1) };
+  }),
+);
+
+app.post("/api/tower/cashout", (req, res) =>
+  wrap(res, async () => {
+    const round = towerRounds.get(String(req.body?.roundId));
+    if (!round) throw new Error("No such climb");
+    assertOwner(round, req);
+    if (round.level < 1) throw new Error("Climb at least one row first");
+    const mult = towerMultiplier(round.diff, round.level);
+    const payout = Math.floor(round.stakeCents * mult);
+    const balance = credit(round.playerId, payout);
+    recordBet(round.playerId, "tower", round.nonce, `${round.diff}, cashed row ${round.level} @${mult}×`, round.stakeCents, payout, true, round.serverSeedHash, round.clientSeed);
+    const layout = round.layout;
+    endTower(String(req.body.roundId), round.playerId);
+    return { payoutCents: payout, multiplier: mult, betCents: round.stakeCents, win: payout > round.stakeCents, balance, layout };
+  }),
+);
 
 // ---------- Memory Match (server-authoritative skill bet) ----------
 interface MemoryRound {

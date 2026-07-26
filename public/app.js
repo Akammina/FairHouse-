@@ -8,6 +8,7 @@ import { renderDice } from "./games/dice.js";
 import { renderCoinflip } from "./games/coinflip.js";
 import { renderCrash } from "./games/crash.js";
 import { renderMines } from "./games/mines.js";
+import { renderTower } from "./games/tower.js";
 import { renderPlinko } from "./games/plinko.js";
 import { renderRoulette } from "./games/roulette.js";
 import { renderWheel } from "./games/wheel.js";
@@ -27,6 +28,9 @@ const $ = (id) => document.getElementById(id);
 const THEMES = ["gold", "neon", "emerald"];
 const applyTheme = (t) => { document.documentElement.dataset.theme = t; localStorage.setItem("fairhouse_theme", t); };
 applyTheme(localStorage.getItem("fairhouse_theme") || "gold");
+
+// Haptic feedback (Android web; iOS Safari ignores it — sound covers both).
+const haptic = (pattern) => { try { navigator.vibrate?.(pattern); } catch { /* unsupported */ } };
 
 const _loadStart = performance.now();
 function hideLoader() {
@@ -81,7 +85,7 @@ const ctx = {
   applyResult(res) {
     if (typeof res.balance === "number") { state.balance = res.balance; renderBalance(); }
     if (typeof res.nonce === "number") { state.nonce = res.nonce + 1; renderModal(); }
-    if (typeof res.win === "boolean") Sound[res.win ? "win" : "lose"]();
+    if (typeof res.win === "boolean") { Sound[res.win ? "win" : "lose"](); haptic(res.win ? [22, 36, 22] : 16); }
     // Big-win celebration on a large net win, in any game.
     if (res.win && typeof res.payoutCents === "number" && typeof res.betCents === "number") {
       const net = res.payoutCents - res.betCents;
@@ -99,12 +103,16 @@ document.addEventListener("pointerdown", (e) => {
 }, { passive: true });
 
 // ---------- Router ----------
-const routes = { "": renderLobby, leaderboard: renderLeaderboard, dice: renderDice, coinflip: renderCoinflip, crash: renderCrash, mines: renderMines, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory, slots: renderSlots, hilo: renderHilo, vpoker: renderVpoker, blackjack: renderBlackjack };
+const routes = { "": renderLobby, leaderboard: renderLeaderboard, dice: renderDice, coinflip: renderCoinflip, crash: renderCrash, mines: renderMines, tower: renderTower, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory, slots: renderSlots, hilo: renderHilo, vpoker: renderVpoker, blackjack: renderBlackjack };
 function route() {
   cleanups.forEach((fn) => { try { fn(); } catch { /* ignore */ } }); // tear down the previous view
   cleanups = [];
   const key = location.hash.replace(/^#\/?/, "");
   document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("active", a.getAttribute("href") === `#/${key}`));
+  document.querySelectorAll(".botnav-item[data-tab]").forEach((a) => {
+    const t = a.dataset.tab;
+    a.classList.toggle("active", (t === "lobby" && key === "") || (t === "board" && key === "leaderboard"));
+  });
   const view = $("view");
   view.innerHTML = "";
   view.classList.remove("enter"); void view.offsetWidth; view.classList.add("enter"); // re-trigger the fade-in
@@ -119,6 +127,7 @@ function renderLobby(root, ctx) {
     { key: "coinflip", icon: "🪙", name: "Coinflip", tag: "Heads or tails, double or nothing.", accent: "var(--coin)" },
     { key: "crash", icon: "📈", name: "Crash", tag: "Cash out before the multiplier busts.", accent: "var(--limbo)" },
     { key: "mines", icon: "💣", name: "Mines", tag: "Uncover gems, dodge the mines, cash out.", accent: "var(--mines)" },
+    { key: "tower", icon: "🐉", name: "Dragon Tower", tag: "Climb the tower, dodge the skulls, cash out.", accent: "#a855f7" },
     { key: "plinko", icon: "🔻", name: "Plinko", tag: "Drop a ball into a multiplier bucket.", accent: "#e879f9" },
     { key: "roulette", icon: "🎡", name: "Roulette", tag: "Bet a number or color, spin the wheel.", accent: "#ff5d6c" },
     { key: "wheel", icon: "🎯", name: "Wheel", tag: "Spin for a multiplier segment.", accent: "#33d17f" },
@@ -163,16 +172,18 @@ function renderLobby(root, ctx) {
     requestAnimationFrame(step);
   });
 
-  // 3D tilt: cards lean toward the cursor.
-  root.querySelectorAll(".game-card").forEach((card) => {
-    card.addEventListener("pointermove", (e) => {
-      const r = card.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width - 0.5;
-      const py = (e.clientY - r.top) / r.height - 0.5;
-      card.style.transform = `perspective(650px) rotateX(${(-py * 8).toFixed(2)}deg) rotateY(${(px * 8).toFixed(2)}deg)`;
+  // 3D tilt: cards lean toward the cursor — mouse devices only (touch just taps).
+  if (matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    root.querySelectorAll(".game-card").forEach((card) => {
+      card.addEventListener("pointermove", (e) => {
+        const r = card.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width - 0.5;
+        const py = (e.clientY - r.top) / r.height - 0.5;
+        card.style.transform = `perspective(650px) rotateX(${(-py * 8).toFixed(2)}deg) rotateY(${(px * 8).toFixed(2)}deg)`;
+      });
+      card.addEventListener("pointerleave", () => { card.style.transform = ""; });
     });
-    card.addEventListener("pointerleave", () => { card.style.transform = ""; });
-  });
+  }
 }
 
 // ---------- Provably-fair modal ----------
@@ -291,15 +302,18 @@ $("themeBtn")?.addEventListener("click", () => {
 });
 
 // ---------- Free credits (play-money top-up) ----------
-const topupBtn = $("topupBtn");
-topupBtn?.addEventListener("click", async () => {
+async function doTopup() {
   try {
     const r = await api("/api/topup", {});
     state.balance = r.balance;
     renderBalance();
     Sound.cashout?.();
+    haptic([12, 28]);
   } catch (e) { /* ignore */ }
-});
+}
+$("topupBtn")?.addEventListener("click", doTopup);
+$("botCredits")?.addEventListener("click", doTopup);
+$("botFair")?.addEventListener("click", () => $("fairBtn")?.click());
 
 // ---------- Live "Big Wins" ticker ----------
 const TICK_ICON = { dice: "🎲", coinflip: "🪙", crash: "📈", mines: "💣", plinko: "🔻", roulette: "🎡", wheel: "🎯", keno: "🔢", memory: "🃏", slots: "🎰", hilo: "🔼", vpoker: "🂡", blackjack: "♠️" };

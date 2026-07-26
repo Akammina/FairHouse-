@@ -69,6 +69,36 @@ export function minesMultiplier(revealed: number, mineCount: number): number {
   return Math.floor((1 - HOUSE_EDGE) * fair * 10000) / 10000;
 }
 
+// ---------- Dragon Tower: climb rows, dodge the trap on each one ----------
+export const TOWER_ROWS = 9;
+export const TOWER_DIFF: Record<string, { tiles: number; traps: number }> = {
+  easy: { tiles: 4, traps: 1 },     // 3 safe of 4
+  medium: { tiles: 3, traps: 1 },   // 2 safe of 3
+  hard: { tiles: 2, traps: 1 },     // 1 safe of 2
+  expert: { tiles: 3, traps: 2 },   // 1 safe of 3
+};
+
+/** Trap tile indices for each row, fixed deterministically from the seed. */
+export async function towerLayout(hmac: string, tiles: number, traps: number, rows: number): Promise<number[][]> {
+  const layout: number[][] = [];
+  for (let r = 0; r < rows; r++) {
+    const keyed = await Promise.all(
+      Array.from({ length: tiles }, async (_, t) => ({ t, k: await sha256Hex(`${hmac}:${r}:${t}`) })),
+    );
+    keyed.sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
+    layout.push(keyed.slice(0, traps).map((x) => x.t).sort((a, b) => a - b));
+  }
+  return layout;
+}
+
+/** Cumulative payout multiplier after climbing `level` rows on a difficulty. */
+export function towerMultiplier(diff: string, level: number): number {
+  const d = TOWER_DIFF[diff] || TOWER_DIFF.medium;
+  const safe = d.tiles - d.traps;
+  if (level <= 0) return 1;
+  return Math.floor((1 - HOUSE_EDGE) * Math.pow(d.tiles / safe, level) * 10000) / 10000;
+}
+
 // ---------- Plinko: drop a ball through pegs into a multiplier bucket ----------
 export const PLINKO_ROWS = 12;
 export const PLINKO_MULTIPLIERS = [15, 4, 1.5, 1.2, 1.1, 1, 0.5, 1, 1.1, 1.2, 1.5, 4, 15];

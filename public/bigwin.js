@@ -49,6 +49,7 @@ export function bigWin({ netCents, label = "BIG WIN!" }) {
   // gold bursts + fanfare
   const cx = innerWidth / 2, cy = innerHeight * 0.42;
   Sound.cashout?.();
+  try { navigator.vibrate?.([40, 60, 40, 60, 90]); } catch { /* unsupported */ }
   burst(cx, cy, 2.3);
   setTimeout(() => burst(cx - 140, cy + 20, 1.5), 220);
   setTimeout(() => burst(cx + 140, cy + 20, 1.5), 420);
