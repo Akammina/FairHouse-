@@ -32,6 +32,31 @@ export function renderBlackjack(root, ctx) {
 
   const setPlaying = (on) => { $("bjActions").hidden = !on; $("bjSetup").hidden = on; };
   const row = (el, cards, hideLast) => { el.innerHTML = cards.map((c) => cardHTML(c, "dealing")).join("") + (hideLast ? cardHTML(37, "back dealing") : ""); };
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Client-side hand value (mirrors the server) so we can show the dealer's total
+  // rising as each card turns over.
+  const handValue = (cards) => {
+    let total = 0, aces = 0;
+    for (const c of cards) { const r = c % 13; total += r <= 8 ? r + 2 : r === 12 ? 11 : 10; if (r === 12) aces++; }
+    while (total > 21 && aces > 0) { total -= 10; aces--; }
+    return total;
+  };
+
+  // Play out the dealer: flip the hole card, then draw one card at a time.
+  async function revealDealer(full) {
+    const el = $("bjDealer");
+    el.innerHTML = full.slice(0, 2).map((c) => cardHTML(c, "dealing")).join(""); // hole card flips up
+    $("bjDealerVal").textContent = handValue(full.slice(0, 2));
+    ctx.sound.reveal();
+    await wait(750);
+    for (let n = 2; n < full.length; n++) {
+      el.insertAdjacentHTML("beforeend", cardHTML(full[n], "dealing"));
+      $("bjDealerVal").textContent = handValue(full.slice(0, n + 1));
+      ctx.sound.reveal();
+      await wait(750);
+    }
+  }
 
   function showPlayer(cards, val) { row($("bjPlayer"), cards, false); $("bjPlayerVal").textContent = val; }
   function showDealer(cards, val, hideHole) { row($("bjDealer"), cards, hideHole); $("bjDealerVal").textContent = hideHole ? "" : val; }
@@ -43,7 +68,7 @@ export function renderBlackjack(root, ctx) {
       const res = await ctx.api(path, { roundId: round.roundId, ...extra });
       ctx.sound.reveal();
       if (res.player) showPlayer(res.player, res.playerValue);
-      if (res.done) finish(res); // finish() reveals the dealer; on a plain hit the dealer is unchanged
+      if (res.done) await finish(res); // finish() plays out the dealer card by card
       else $("bjDouble").style.display = res.canDouble ? "" : "none";
     } catch (e) { $("bjMsg").textContent = e.message; $("bjMsg").className = "msg lose"; }
     finally { busy = false; document.querySelectorAll("#bjActions button").forEach((b) => (b.disabled = false)); }
@@ -56,8 +81,8 @@ export function renderBlackjack(root, ctx) {
       round = { roundId: res.roundId, stakeCents: res.betCents, nonce: res.nonce, serverSeedHash: res.serverSeedHash, clientSeed: res.clientSeed };
       ctx.applyResult(res); ctx.sound.reveal();
       showPlayer(res.player, res.playerValue);
-      showDealer(res.dealer, res.dealerValue, !res.done);
-      if (res.done) { setPlaying(false); finish(res); }
+      showDealer(res.done ? [res.dealer[0]] : res.dealer, res.dealerValue, true); // hole card hidden until reveal
+      if (res.done) { await finish(res); }
       else { setPlaying(true); $("bjDouble").style.display = res.canDouble ? "" : "none"; $("bjMsg").textContent = "Hit, stand, or double."; $("bjMsg").className = "msg"; }
     } catch (e) { $("bjMsg").textContent = e.message; $("bjMsg").className = "msg lose"; }
     finally { $("bjDeal").disabled = false; }
@@ -67,8 +92,9 @@ export function renderBlackjack(root, ctx) {
   $("bjStand").addEventListener("click", () => act("/api/bj/stand"));
   $("bjDouble").addEventListener("click", () => act("/api/bj/double"));
 
-  function finish(res) {
-    showDealer(res.dealer, res.dealerValue, false); // reveal the hole card
+  async function finish(res) {
+    $("bjActions").hidden = true;        // dealer is playing — no player actions
+    await revealDealer(res.dealer);      // flip hole card, then draw card by card
     const win = res.payoutCents > res.betCents;
     const push = res.payoutCents === res.betCents;
     $("bjMsg").textContent = win ? `${res.outcome} — +${ctx.money(res.payoutCents - res.betCents)}` : res.outcome;
@@ -78,7 +104,7 @@ export function renderBlackjack(root, ctx) {
     ctx.applyResult(res);
     pushRecent(ctx, "blackjack", res.outcome, res.betCents, res.payoutCents, win, round.nonce, round.serverSeedHash, round.clientSeed);
     round = null;
-    setTimeout(() => setPlaying(false), 200);
+    setPlaying(false);
   }
 
   setPlaying(false);
