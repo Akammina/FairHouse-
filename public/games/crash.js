@@ -9,7 +9,7 @@ const ACCENT = "#38d0e0";
 
 export function renderCrash(root, ctx) {
   shell(root, {
-    title: "Crash", icon: "📈", accent: ACCENT,
+    title: "Crash", iconKey: "crash", accent: ACCENT,
     stage: `
       <div class="crash-wrap">
         <canvas id="ccanvas"></canvas>

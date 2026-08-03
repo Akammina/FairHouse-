@@ -3,7 +3,7 @@ import { shell, renderRecent, pushRecent, stakeField, wireStake } from "./common
 
 export function renderDice(root, ctx) {
   shell(root, {
-    title: "Dice", icon: "🎲", accent: "var(--dice)",
+    title: "Dice", iconKey: "dice", accent: "var(--dice)",
     stage: `
       <p class="msg" id="dmsg" style="margin-bottom:6px">Roll under your target to win</p>
       <div class="dice-track"><div class="dice-win" id="dwin"></div><div class="dice-pointer" id="dptr"><span id="dval">—</span></div></div>

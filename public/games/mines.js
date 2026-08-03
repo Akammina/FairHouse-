@@ -2,7 +2,7 @@ import { shell, renderRecent, pushRecent, stakeField, wireStake } from "./common
 
 export function renderMines(root, ctx) {
   shell(root, {
-    title: "Mines", icon: "💣", accent: "var(--mines)",
+    title: "Mines", iconKey: "mines", accent: "var(--mines)",
     stage: `
       <div class="stat-row" style="margin-bottom:16px">
         <div class="stat"><span class="l">Multiplier</span><span class="v" id="mmult">1.00×</span></div>

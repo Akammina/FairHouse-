@@ -5,7 +5,7 @@ const ACCENT = "#4fd1c5";
 
 export function renderHilo(root, ctx) {
   shell(root, {
-    title: "Hi-Lo", icon: "🔼", accent: ACCENT,
+    title: "Hi-Lo", iconKey: "hilo", accent: ACCENT,
     stage: `
       <div class="hilo-board">
         <div class="hilo-trail" id="hiloTrail"></div>

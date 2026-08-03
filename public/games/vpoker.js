@@ -9,7 +9,7 @@ const PAYTABLE = [
 
 export function renderVpoker(root, ctx) {
   shell(root, {
-    title: "Video Poker", icon: "🂡", accent: ACCENT,
+    title: "Video Poker", iconKey: "vpoker", accent: ACCENT,
     stage: `
       <div class="vp-pay">${PAYTABLE.map(([n, m]) => `<span><b>${m}×</b> ${n}</span>`).join("")}</div>
       <div class="vp-hand" id="vpHand">${[0, 1, 2, 3, 4].map(() => `<div class="vp-slot">${cardHTML(37, "back")}</div>`).join("")}</div>

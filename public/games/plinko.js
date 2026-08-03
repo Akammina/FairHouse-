@@ -5,7 +5,7 @@ const ACCENT = "#e879f9";
 
 export function renderPlinko(root, ctx) {
   shell(root, {
-    title: "Plinko", icon: "🔻", accent: ACCENT,
+    title: "Plinko", iconKey: "plinko", accent: ACCENT,
     stage: `
       <div style="position:relative"><canvas id="pcanvas" style="width:100%;aspect-ratio:1/0.92;display:block"></canvas></div>
       <p class="msg" id="pmsg" style="margin:8px 0 14px">Drop the ball and watch where it lands</p>

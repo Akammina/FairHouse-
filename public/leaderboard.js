@@ -1,13 +1,10 @@
 import { money } from "./games/common.js";
+import { icon, gameIcon } from "./icons.js";
 
-const ICON = {
-  dice: "🎲", coinflip: "🪙", crash: "📈", mines: "💣", plinko: "🔻", roulette: "🎡",
-  wheel: "🎯", keno: "🔢", memory: "🃏", slots: "🎰", hilo: "🔼", vpoker: "🂡", blackjack: "♠️",
-};
 const medal = (i) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`);
 
 export async function renderLeaderboard(root) {
-  root.innerHTML = `<div class="lb-wrap"><h1 class="lb-title">🏆 Leaderboard</h1>
+  root.innerHTML = `<div class="lb-wrap"><h1 class="lb-title">${icon("trophy", { size: 26, cls: "lb-title-ico" })} Leaderboard</h1>
     <p class="lb-sub">The biggest winners across FairHouse.</p>
     <div class="lb-grid" id="lbGrid"><p class="lb-loading">Loading…</p></div></div>`;
 
@@ -31,10 +28,10 @@ export async function renderLeaderboard(root) {
     </section>`;
 
   document.getElementById("lbGrid").innerHTML =
-    board("💰 Biggest Wins", data.biggestWins, (r) =>
-      `<span class="lb-game">${ICON[r.game] || ""}</span><span class="lb-val win">+${money(r.netCents)}</span>`) +
-    board("🚀 Top Multipliers", data.topMultipliers, (r) =>
-      `<span class="lb-game">${ICON[r.game] || ""}</span><span class="lb-val mult">${r.mult}×</span>`) +
-    board("👑 Richest Players", data.richest, (r) =>
+    board(`${icon("coins", { size: 16 })} Biggest Wins`, data.biggestWins, (r) =>
+      `<span class="lb-game">${gameIcon(r.game, { size: 15 })}</span><span class="lb-val win">+${money(r.netCents)}</span>`) +
+    board(`${icon("rocket", { size: 16 })} Top Multipliers`, data.topMultipliers, (r) =>
+      `<span class="lb-game">${gameIcon(r.game, { size: 15 })}</span><span class="lb-val mult">${r.mult}×</span>`) +
+    board(`${icon("wallet", { size: 16 })} Richest Players`, data.richest, (r) =>
       `<span class="lb-val">${money(r.balance)}</span>`);
 }

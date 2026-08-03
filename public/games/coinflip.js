@@ -3,7 +3,7 @@ import { shell, renderRecent, pushRecent, stakeField, wireStake } from "./common
 
 export function renderCoinflip(root, ctx) {
   shell(root, {
-    title: "Coinflip", icon: "🪙", accent: "var(--coin)",
+    title: "Coinflip", iconKey: "coinflip", accent: "var(--coin)",
     stage: `
       <div id="coin" class="coin">?</div>
       <p class="msg" id="cmsg" style="margin-bottom:14px">Pick a side and flip</p>

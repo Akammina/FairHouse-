@@ -14,7 +14,7 @@ const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math
 
 export function renderMemory(root, ctx) {
   shell(root, {
-    title: "Memory Match", icon: "🃏", accent: ACCENT,
+    title: "Memory Match", iconKey: "memory", accent: ACCENT,
     stage: `
       <p class="msg" id="memMsg" style="margin-bottom:14px">Wager, then clear the board within your move budget to win.</p>
       <div class="stat-row" style="margin-bottom:14px">

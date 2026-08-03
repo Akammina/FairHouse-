@@ -5,7 +5,7 @@ const ACCENT = "#3b8ff0";
 
 export function renderKeno(root, ctx) {
   shell(root, {
-    title: "Keno", icon: "🔢", accent: ACCENT,
+    title: "Keno", iconKey: "keno", accent: ACCENT,
     stage: `
       <div class="keno-grid" id="kgrid"></div>
       <div class="keno-bar">

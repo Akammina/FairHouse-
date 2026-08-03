@@ -8,7 +8,7 @@ const rnd = () => SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
 
 export function renderSlots(root, ctx) {
   shell(root, {
-    title: "Slots", icon: "🎰", accent: ACCENT,
+    title: "Slots", iconKey: "slots", accent: ACCENT,
     stage: `
       <div class="slot-machine">
         <div class="slot-marquee">★ SLEMANI SPINS ★</div>

@@ -21,6 +21,7 @@ import { renderBlackjack } from "./games/blackjack.js";
 import { renderLeaderboard } from "./leaderboard.js";
 import { bigWin } from "./bigwin.js";
 import { startLobbyFx } from "./lobbyfx.js";
+import { icon, gameIcon } from "./icons.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -152,7 +153,7 @@ function renderLobby(root, ctx) {
     <div class="game-grid">
       ${games.map((g) => `
         <a class="game-card" href="#/${g.key}" style="--card-accent:${g.accent}">
-          <div class="icon icon-${g.key}">${g.icon}</div>
+          <div class="icon icon-${g.key}">${gameIcon(g.key, { size: 30 })}</div>
           <h3>${g.name}</h3>
           <p>${g.tag}</p>
           <div class="play">Play ${g.name} →</div>
@@ -289,10 +290,19 @@ $("vRun").addEventListener("click", async () => {
     `Plinko: <span class="ok">${plinkoMultiplier(plinkoBucket(plinkoPath(hmac)))}×</span>`;
 });
 
-// ---------- Sound toggle ----------
+// ---------- Icons: control buttons + bottom nav ----------
 const soundBtn = $("soundBtn");
-if (Sound.muted) soundBtn.textContent = "🔇";
-soundBtn.addEventListener("click", () => { soundBtn.textContent = Sound.toggle() ? "🔇" : "🔊"; });
+const setSoundIcon = () => { soundBtn.innerHTML = icon(Sound.muted ? "volume-x" : "volume-2", { size: 18 }); };
+setSoundIcon();
+soundBtn.addEventListener("click", () => { Sound.toggle(); setSoundIcon(); });
+
+if ($("themeBtn")) $("themeBtn").innerHTML = icon("palette", { size: 18 });
+if ($("fairBtn")) $("fairBtn").innerHTML = icon("shield-check", { size: 16 }) + '<span class="fair-lbl">Provably Fair</span>';
+const setBI = (sel, name) => { const el = document.querySelector(sel); if (el) el.innerHTML = icon(name, { size: 22 }); };
+setBI('.botnav-item[data-tab="lobby"] .bi', "house");
+setBI('.botnav-item[data-tab="board"] .bi', "trophy");
+setBI('#botCredits .bi', "wallet");
+setBI('#botFair .bi', "shield-check");
 
 // ---------- Theme switcher ----------
 $("themeBtn")?.addEventListener("click", () => {
@@ -321,7 +331,7 @@ function initTicker() {
   const bar = $("ticker"), track = $("tickerTrack");
   if (!bar || !track) return;
   const wins = [];
-  const entry = (w) => `<span class="tk ${w.netCents >= 50000 ? "big" : ""}">${TICK_ICON[w.game] || "🎲"} <b>${w.alias}</b> won <span class="tk-amt">+${money(w.netCents)}</span> on ${w.game}</span>`;
+  const entry = (w) => `<span class="tk ${w.netCents >= 50000 ? "big" : ""}">${gameIcon(w.game, { size: 15, cls: "tk-ico" })} <b>${w.alias}</b> won <span class="tk-amt">+${money(w.netCents)}</span> on ${w.game}</span>`;
   const render = () => {
     if (!wins.length) return;
     bar.hidden = false;

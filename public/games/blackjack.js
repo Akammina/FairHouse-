@@ -5,7 +5,7 @@ const ACCENT = "#2fae66";
 
 export function renderBlackjack(root, ctx) {
   shell(root, {
-    title: "Blackjack", icon: "🂡", accent: ACCENT,
+    title: "Blackjack", iconKey: "blackjack", accent: ACCENT,
     stage: `
       <div class="bj-area">
         <div class="bj-side"><span class="bj-label">Dealer <b id="bjDealerVal"></b></span><div class="bj-row" id="bjDealer"></div></div>

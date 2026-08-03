@@ -11,7 +11,7 @@ const DIFFS = [
 
 export function renderTower(root, ctx) {
   shell(root, {
-    title: "Dragon Tower", icon: "🐉", accent: ACCENT,
+    title: "Dragon Tower", iconKey: "tower", accent: ACCENT,
     stage: `
       <div class="tw-diffs" id="twDiffs">
         ${DIFFS.map((d) => `<button class="tw-diff ${d.key === "medium" ? "sel" : ""}" data-diff="${d.key}"><b>${d.label}</b><span>${d.sub}</span></button>`).join("")}

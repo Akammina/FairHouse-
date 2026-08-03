@@ -15,7 +15,7 @@ const pocketFill = (n) => (n === 0 ? "#2fa956" : ROULETTE_RED.has(n) ? "#d83a48"
 
 export function renderRoulette(root, ctx) {
   shell(root, {
-    title: "Roulette", icon: "🎡", accent: ACCENT,
+    title: "Roulette", iconKey: "roulette", accent: ACCENT,
     stage: `
       <div style="position:relative"><canvas id="rcanvas" style="width:100%;max-width:360px;aspect-ratio:1;display:block;margin:0 auto"></canvas></div>
       <p class="msg" id="rmsg" style="margin:10px 0 14px">Pick a bet and spin</p>

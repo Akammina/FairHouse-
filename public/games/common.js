@@ -1,12 +1,15 @@
 // Shared helpers for the game views.
+import { gameIcon } from "../icons.js";
+
 export const money = (c) => (c / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /** Standard two-column game layout: main stage + recent-bets sidebar. */
-export function shell(root, { title, icon, accent, stage }) {
+export function shell(root, { title, iconKey, icon, accent, stage }) {
+  const head = iconKey ? gameIcon(iconKey, { size: 22, cls: "gt-ico" }) : (icon || "");
   root.innerHTML = `
     <div class="game" style="--accent:${accent}">
       <section class="card stage">
-        <h2 class="game-title"><span class="dot" style="background:${accent}"></span>${icon} ${title}</h2>
+        <h2 class="game-title"><span class="dot" style="background:${accent}"></span>${head} ${title}</h2>
         ${stage}
       </section>
       <section class="card recent"><h3>Recent bets</h3><ul id="recentList"></ul></section>

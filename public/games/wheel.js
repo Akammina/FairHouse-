@@ -7,7 +7,7 @@ const segColor = (m) => (m === 0 ? "#20313f" : m >= 3 ? "#ff5d6c" : m >= 2 ? "#f
 
 export function renderWheel(root, ctx) {
   shell(root, {
-    title: "Wheel", icon: "🎯", accent: ACCENT,
+    title: "Wheel", iconKey: "wheel", accent: ACCENT,
     stage: `
       <div style="position:relative"><canvas id="wcanvas" style="width:100%;max-width:360px;aspect-ratio:1;display:block;margin:0 auto"></canvas></div>
       <p class="msg" id="wmsg" style="margin:10px 0 14px">Spin the wheel — segments pay their multiplier</p>
