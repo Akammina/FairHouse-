@@ -732,7 +732,8 @@ app.post("/api/bj/hit", (req, res) =>
   wrap(res, async () => {
     const r = bjActiveRound(req);
     r.player.push(r.deck[r.next++]);
-    if (handValue(r.player) > 21) return bjResolve(r);
+    // 21 or bust ends your turn automatically — you can't hit on 21.
+    if (handValue(r.player) >= 21) return bjResolve(r);
     return { done: false, player: r.player, playerValue: handValue(r.player), canDouble: false };
   }),
 );
