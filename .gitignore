@@ -5,3 +5,9 @@ dist/
 *.db-wal
 .DS_Store
 .env
+
+# Python (math-lab)
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc

@@ -1,0 +1,1743 @@
+{
+  "server": "server-seed-parity-fixture-2f9a",
+  "client": "player-client-seed",
+  "bets": [
+    {
+      "nonce": 0,
+      "hmac": "9aafcc50e071ef5cc46f26a4004de2e7bec8e40c0a389928956bcc9c4ab11824",
+      "floatFromHex": 0.6042449662640546,
+      "diceRoll": 60.42,
+      "coin": "tails",
+      "limbo": 2.5,
+      "rouletteNumber": 22,
+      "rouletteColor": "black",
+      "wheelSegment": 12,
+      "wheelMultiplier": 0,
+      "slotSpin": [
+        3,
+        5,
+        4
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "plinkoBucket": 5,
+      "plinkoMultiplier": 1,
+      "minesLayout3": [
+        9,
+        11,
+        17
+      ],
+      "towerEasy": [
+        [
+          1
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          3
+        ],
+        [
+          0
+        ],
+        [
+          2
+        ],
+        [
+          1
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ],
+      "towerExpert": [
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "kenoDraw": [
+        10,
+        12,
+        15,
+        18,
+        28,
+        29,
+        32,
+        34,
+        39,
+        40
+      ],
+      "deckFirst10": [
+        17,
+        28,
+        9,
+        11,
+        39,
+        38,
+        27,
+        44,
+        43,
+        14
+      ]
+    },
+    {
+      "nonce": 1,
+      "hmac": "d388967bc2d2ac6e6aeef7f947abf4c2b40512cead5c2c3a185ea8c4f8a87d02",
+      "floatFromHex": 0.8263029148245757,
+      "diceRoll": 82.63,
+      "coin": "tails",
+      "limbo": 5.69,
+      "rouletteNumber": 30,
+      "rouletteColor": "red",
+      "wheelSegment": 16,
+      "wheelMultiplier": 0,
+      "slotSpin": [
+        4,
+        4,
+        2
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        1,
+        1,
+        0,
+        0,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        1,
+        0
+      ],
+      "plinkoBucket": 6,
+      "plinkoMultiplier": 0.5,
+      "minesLayout3": [
+        0,
+        4,
+        7
+      ],
+      "towerEasy": [
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          2
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          3
+        ],
+        [
+          3
+        ],
+        [
+          3
+        ],
+        [
+          0
+        ]
+      ],
+      "towerExpert": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "kenoDraw": [
+        1,
+        3,
+        5,
+        8,
+        10,
+        28,
+        29,
+        30,
+        37,
+        40
+      ],
+      "deckFirst10": [
+        51,
+        36,
+        0,
+        4,
+        29,
+        7,
+        39,
+        44,
+        28,
+        41
+      ]
+    },
+    {
+      "nonce": 2,
+      "hmac": "dfecc1cc147a92d6220ff99233650c8b2e9813681ad0dbf32222d837b3889583",
+      "floatFromHex": 0.8747063754312683,
+      "diceRoll": 87.47,
+      "coin": "tails",
+      "limbo": 7.9,
+      "rouletteNumber": 32,
+      "rouletteColor": "red",
+      "wheelSegment": 17,
+      "wheelMultiplier": 1.6,
+      "slotSpin": [
+        5,
+        0,
+        0
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      "plinkoBucket": 5,
+      "plinkoMultiplier": 1,
+      "minesLayout3": [
+        4,
+        5,
+        18
+      ],
+      "towerEasy": [
+        [
+          1
+        ],
+        [
+          0
+        ],
+        [
+          3
+        ],
+        [
+          0
+        ],
+        [
+          2
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          0
+        ],
+        [
+          2
+        ]
+      ],
+      "towerExpert": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "kenoDraw": [
+        2,
+        5,
+        6,
+        9,
+        13,
+        19,
+        20,
+        31,
+        32,
+        37
+      ],
+      "deckFirst10": [
+        31,
+        30,
+        41,
+        18,
+        42,
+        4,
+        43,
+        49,
+        46,
+        5
+      ]
+    },
+    {
+      "nonce": 3,
+      "hmac": "5f8f30ee47c6f452a6fb07ddf4997846c19c6d1ddab08b7a2359dbebaaa74a6b",
+      "floatFromHex": 0.3732786733378608,
+      "diceRoll": 37.32,
+      "coin": "heads",
+      "limbo": 1.57,
+      "rouletteNumber": 13,
+      "rouletteColor": "black",
+      "wheelSegment": 7,
+      "wheelMultiplier": 2,
+      "slotSpin": [
+        2,
+        1,
+        3
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "plinkoBucket": 5,
+      "plinkoMultiplier": 1,
+      "minesLayout3": [
+        4,
+        8,
+        16
+      ],
+      "towerEasy": [
+        [
+          0
+        ],
+        [
+          2
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          0
+        ],
+        [
+          2
+        ],
+        [
+          2
+        ],
+        [
+          2
+        ]
+      ],
+      "towerExpert": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "kenoDraw": [
+        5,
+        9,
+        10,
+        15,
+        17,
+        18,
+        21,
+        23,
+        34,
+        35
+      ],
+      "deckFirst10": [
+        8,
+        4,
+        16,
+        20,
+        9,
+        34,
+        22,
+        14,
+        17,
+        33
+      ]
+    },
+    {
+      "nonce": 4,
+      "hmac": "4eb185ed6b30114ec0dc90b447f391bac535bc70b44dfdd8b81ce67d8045d4b9",
+      "floatFromHex": 0.30739628836016686,
+      "diceRoll": 30.73,
+      "coin": "heads",
+      "limbo": 1.42,
+      "rouletteNumber": 11,
+      "rouletteColor": "black",
+      "wheelSegment": 6,
+      "wheelMultiplier": 0,
+      "slotSpin": [
+        1,
+        2,
+        4
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        0,
+        0,
+        1,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        1,
+        0
+      ],
+      "plinkoBucket": 6,
+      "plinkoMultiplier": 0.5,
+      "minesLayout3": [
+        3,
+        8,
+        17
+      ],
+      "towerEasy": [
+        [
+          2
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          3
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ]
+      ],
+      "towerExpert": [
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "kenoDraw": [
+        1,
+        2,
+        4,
+        9,
+        18,
+        20,
+        25,
+        31,
+        34,
+        38
+      ],
+      "deckFirst10": [
+        30,
+        3,
+        17,
+        33,
+        48,
+        8,
+        37,
+        1,
+        24,
+        19
+      ]
+    },
+    {
+      "nonce": 5,
+      "hmac": "99f961f88467d2b9b93d3d555eafd1718d2604306371f9b1e30242fa0b10ccbe",
+      "floatFromHex": 0.6014615279895275,
+      "diceRoll": 60.14,
+      "coin": "tails",
+      "limbo": 2.48,
+      "rouletteNumber": 22,
+      "rouletteColor": "black",
+      "wheelSegment": 12,
+      "wheelMultiplier": 0,
+      "slotSpin": [
+        3,
+        3,
+        4
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        1,
+        1,
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "plinkoBucket": 7,
+      "plinkoMultiplier": 1,
+      "minesLayout3": [
+        0,
+        9,
+        24
+      ],
+      "towerEasy": [
+        [
+          3
+        ],
+        [
+          3
+        ],
+        [
+          1
+        ],
+        [
+          0
+        ],
+        [
+          3
+        ],
+        [
+          2
+        ],
+        [
+          3
+        ],
+        [
+          3
+        ],
+        [
+          1
+        ]
+      ],
+      "towerExpert": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "kenoDraw": [
+        1,
+        8,
+        10,
+        12,
+        16,
+        20,
+        25,
+        28,
+        31,
+        33
+      ],
+      "deckFirst10": [
+        27,
+        32,
+        0,
+        24,
+        30,
+        49,
+        43,
+        9,
+        15,
+        7
+      ]
+    },
+    {
+      "nonce": 6,
+      "hmac": "b7146cbb86a5f7d66965c8581205497f992c3b3f2ca03240a97b11602b4c9a14",
+      "floatFromHex": 0.7151554067446779,
+      "diceRoll": 71.51,
+      "coin": "tails",
+      "limbo": 3.47,
+      "rouletteNumber": 26,
+      "rouletteColor": "black",
+      "wheelSegment": 14,
+      "wheelMultiplier": 0,
+      "slotSpin": [
+        4,
+        3,
+        2
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1
+      ],
+      "plinkoBucket": 6,
+      "plinkoMultiplier": 0.5,
+      "minesLayout3": [
+        10,
+        13,
+        22
+      ],
+      "towerEasy": [
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          3
+        ],
+        [
+          0
+        ],
+        [
+          3
+        ],
+        [
+          0
+        ]
+      ],
+      "towerExpert": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "kenoDraw": [
+        7,
+        8,
+        11,
+        12,
+        14,
+        18,
+        19,
+        23,
+        34,
+        38
+      ],
+      "deckFirst10": [
+        10,
+        48,
+        22,
+        43,
+        13,
+        37,
+        33,
+        6,
+        18,
+        7
+      ]
+    },
+    {
+      "nonce": 7,
+      "hmac": "1af04d7b50551bc715db3918c4194ce1e8ecfc713df477d6c3c6ea657c695fdc",
+      "floatFromHex": 0.10522922764387865,
+      "diceRoll": 10.52,
+      "coin": "heads",
+      "limbo": 1.1,
+      "rouletteNumber": 3,
+      "rouletteColor": "red",
+      "wheelSegment": 2,
+      "wheelMultiplier": 0,
+      "slotSpin": [
+        0,
+        1,
+        0
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        1,
+        0,
+        1,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        0,
+        1,
+        1
+      ],
+      "plinkoBucket": 8,
+      "plinkoMultiplier": 1.1,
+      "minesLayout3": [
+        11,
+        15,
+        19
+      ],
+      "towerEasy": [
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          3
+        ],
+        [
+          2
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ]
+      ],
+      "towerExpert": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "kenoDraw": [
+        5,
+        12,
+        16,
+        20,
+        22,
+        25,
+        28,
+        30,
+        37,
+        38
+      ],
+      "deckFirst10": [
+        11,
+        15,
+        19,
+        37,
+        27,
+        51,
+        46,
+        48,
+        40,
+        24
+      ]
+    },
+    {
+      "nonce": 8,
+      "hmac": "0d9d00fe22c2e7ca8fa1ea6f2b442f52170efa19408147dbe0465706ccf1d801",
+      "floatFromHex": 0.05317693905341114,
+      "diceRoll": 5.31,
+      "coin": "heads",
+      "limbo": 1.04,
+      "rouletteNumber": 1,
+      "rouletteColor": "red",
+      "wheelSegment": 1,
+      "wheelMultiplier": 1.6,
+      "slotSpin": [
+        0,
+        0,
+        3
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "plinkoBucket": 4,
+      "plinkoMultiplier": 1.1,
+      "minesLayout3": [
+        0,
+        4,
+        22
+      ],
+      "towerEasy": [
+        [
+          3
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          2
+        ],
+        [
+          2
+        ],
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          3
+        ],
+        [
+          2
+        ]
+      ],
+      "towerExpert": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "kenoDraw": [
+        1,
+        5,
+        23,
+        27,
+        31,
+        32,
+        33,
+        36,
+        37,
+        38
+      ],
+      "deckFirst10": [
+        49,
+        26,
+        22,
+        32,
+        44,
+        31,
+        35,
+        30,
+        46,
+        4
+      ]
+    },
+    {
+      "nonce": 9,
+      "hmac": "53294c04080c658ee9bdb2ef5c2203e8baf346463f0a663cec09c5a4c99b57f7",
+      "floatFromHex": 0.3248488912432079,
+      "diceRoll": 32.48,
+      "coin": "heads",
+      "limbo": 1.46,
+      "rouletteNumber": 12,
+      "rouletteColor": "red",
+      "wheelSegment": 6,
+      "wheelMultiplier": 0,
+      "slotSpin": [
+        1,
+        0,
+        5
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        1,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "plinkoBucket": 3,
+      "plinkoMultiplier": 1.2,
+      "minesLayout3": [
+        3,
+        17,
+        24
+      ],
+      "towerEasy": [
+        [
+          3
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          3
+        ],
+        [
+          2
+        ],
+        [
+          3
+        ],
+        [
+          2
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ]
+      ],
+      "towerExpert": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "kenoDraw": [
+        3,
+        4,
+        9,
+        11,
+        12,
+        18,
+        19,
+        21,
+        25,
+        40
+      ],
+      "deckFirst10": [
+        39,
+        24,
+        3,
+        17,
+        8,
+        11,
+        18,
+        42,
+        10,
+        20
+      ]
+    },
+    {
+      "nonce": 10,
+      "hmac": "6e3c3b6bb26e2c95b3f0a3a7a154331d0a1d349d1ce3370ae89d7cada5598018",
+      "floatFromHex": 0.4306065690929519,
+      "diceRoll": 43.06,
+      "coin": "heads",
+      "limbo": 1.73,
+      "rouletteNumber": 15,
+      "rouletteColor": "black",
+      "wheelSegment": 8,
+      "wheelMultiplier": 0,
+      "slotSpin": [
+        2,
+        4,
+        4
+      ],
+      "slotPayout": 0,
+      "plinkoPath": [
+        0,
+        0,
+        1,
+        0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "plinkoBucket": 5,
+      "plinkoMultiplier": 1,
+      "minesLayout3": [
+        6,
+        14,
+        18
+      ],
+      "towerEasy": [
+        [
+          0
+        ],
+        [
+          3
+        ],
+        [
+          2
+        ],
+        [
+          2
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          0
+        ],
+        [
+          3
+        ]
+      ],
+      "towerExpert": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "kenoDraw": [
+        6,
+        7,
+        15,
+        19,
+        26,
+        28,
+        32,
+        35,
+        37,
+        39
+      ],
+      "deckFirst10": [
+        38,
+        18,
+        40,
+        6,
+        50,
+        41,
+        44,
+        34,
+        36,
+        49
+      ]
+    },
+    {
+      "nonce": 11,
+      "hmac": "eab4a0b4eae208c3fe25911213beda845cbd5b0bc6739d575b70cfd2d45caab2",
+      "floatFromHex": 0.9168186608975546,
+      "diceRoll": 91.68,
+      "coin": "tails",
+      "limbo": 11.9,
+      "rouletteNumber": 33,
+      "rouletteColor": "black",
+      "wheelSegment": 18,
+      "wheelMultiplier": 0,
+      "slotSpin": [
+        5,
+        5,
+        5
+      ],
+      "slotPayout": 15,
+      "plinkoPath": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "plinkoBucket": 2,
+      "plinkoMultiplier": 1.5,
+      "minesLayout3": [
+        0,
+        10,
+        18
+      ],
+      "towerEasy": [
+        [
+          1
+        ],
+        [
+          0
+        ],
+        [
+          2
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          2
+        ],
+        [
+          0
+        ]
+      ],
+      "towerExpert": [
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "kenoDraw": [
+        1,
+        5,
+        11,
+        14,
+        17,
+        19,
+        25,
+        28,
+        35,
+        36
+      ],
+      "deckFirst10": [
+        18,
+        10,
+        51,
+        34,
+        0,
+        49,
+        27,
+        16,
+        13,
+        4
+      ]
+    }
+  ],
+  "scalars": {
+    "sha256_sample": "862d36a71e45ce397029697c05244cf74d9395daca946e520385c64fa6c47e40",
+    "diceMultiplier": [
+      [
+        2,
+        49.5
+      ],
+      [
+        25,
+        3.96
+      ],
+      [
+        50,
+        1.98
+      ],
+      [
+        98,
+        1.0102
+      ]
+    ],
+    "coinMultiplier": 1.98,
+    "minesMultiplier": [
+      [
+        1,
+        3,
+        1.125
+      ],
+      [
+        5,
+        3,
+        1.9973
+      ],
+      [
+        10,
+        5,
+        17.5153
+      ],
+      [
+        24,
+        1,
+        24.7499
+      ]
+    ],
+    "towerMultiplier": [
+      [
+        "easy",
+        13.1851
+      ],
+      [
+        "medium",
+        38.0589
+      ],
+      [
+        "hard",
+        506.88
+      ],
+      [
+        "expert",
+        19486.1699
+      ]
+    ],
+    "kenoMultiplier": [
+      [
+        10,
+        10,
+        5000
+      ],
+      [
+        8,
+        5,
+        8
+      ],
+      [
+        5,
+        3,
+        3
+      ],
+      [
+        1,
+        1,
+        3.8
+      ]
+    ],
+    "hiloHigher": [
+      [
+        0,
+        0.99
+      ],
+      [
+        6,
+        1.83
+      ],
+      [
+        12,
+        12.87
+      ]
+    ],
+    "hiloLower": [
+      [
+        0,
+        12.87
+      ],
+      [
+        6,
+        1.83
+      ],
+      [
+        12,
+        0.99
+      ]
+    ],
+    "poker": [
+      [
+        [
+          0,
+          13,
+          26,
+          39,
+          12
+        ],
+        {
+          "name": "Four of a Kind",
+          "multiplier": 25
+        }
+      ],
+      [
+        [
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        {
+          "name": "Royal Flush",
+          "multiplier": 800
+        }
+      ],
+      [
+        [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        {
+          "name": "Straight Flush",
+          "multiplier": 50
+        }
+      ]
+    ],
+    "handValue": [
+      [
+        [
+          12,
+          25
+        ],
+        12
+      ],
+      [
+        [
+          12,
+          8
+        ],
+        21
+      ],
+      [
+        [
+          10,
+          11,
+          12
+        ],
+        21
+      ]
+    ]
+  }
+}

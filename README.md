@@ -84,6 +84,14 @@ npm start        # http://localhost:3300
 npm test         # unit tests
 ```
 
+## Game Math & Fairness Lab (Python)
+
+[`math-lab/`](math-lab/) is a Python companion that ports this casino's exact
+game math and (1) independently **verifies** any bet's provably-fair outcome and
+(2) **Monte-Carlo simulates** every game to measure its true RTP and house edge.
+The Python is checked against the real TypeScript byte-for-byte by a parity
+suite. See [math-lab/README.md](math-lab/README.md).
+
 ## Possible next steps
 
 - Commit to a chain of future server seeds up front.
