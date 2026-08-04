@@ -190,6 +190,19 @@ canvas { max-width: 100%; }
 .stat .l { display: block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
 .stat .v { font-family: var(--mono); font-size: 15px; font-weight: 700; }
 
+/* Editable win-chance field: an input that reads like the other stat values. */
+.stat.prob-stat { outline: 1px solid transparent; transition: outline-color 0.12s, border-color 0.12s; }
+.stat.prob-stat:focus-within { border-color: var(--accent, var(--gold)); outline-color: var(--accent, var(--gold)); }
+.prob-field { display: inline-flex; align-items: baseline; justify-content: center; gap: 1px; }
+.prob-input {
+  width: 4.2ch; background: transparent; border: none; color: var(--accent, var(--gold));
+  font-family: var(--mono); font-size: 15px; font-weight: 700; text-align: right; padding: 0;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.prob-input::-webkit-outer-spin-button, .prob-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.prob-input:focus { outline: none; }
+.prob-pct { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--faint); }
+
 .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 800; cursor: pointer; background: var(--accent, var(--gold)); color: #0a0e12; transition: filter 0.1s, transform 0.05s; }
 .btn:hover:not(:disabled) { filter: brightness(1.08); }
 .btn:active:not(:disabled) { transform: translateY(1px); }
@@ -675,3 +688,49 @@ a, button, input, .game-card, .lvl, .tw-tile, .tw-diff, .knum, .pick, .chip-bet,
 .verify-out .ok { color: var(--win); }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ---------- Fairness & Odds page ---------- */
+.fair-page { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.fair-hero { text-align: center; padding: 8px 0 4px; }
+.fair-hero h1 { margin: 12px 0 8px; font-size: 30px; letter-spacing: -0.01em; }
+.fair-hero p { color: var(--muted); max-width: 560px; margin: 0 auto; line-height: 1.5; }
+.fair-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.fair-card h2 { margin: 0 0 4px; font-size: 18px; }
+.fair-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.fair-sub { color: var(--muted); font-size: 13.5px; line-height: 1.5; margin: 6px 0 14px; }
+.fair-link { color: var(--gold); font-weight: 700; font-size: 13px; white-space: nowrap; text-decoration: none; }
+.fair-link:hover { text-decoration: underline; }
+.fair-foot { color: var(--faint); font-size: 12.5px; line-height: 1.5; margin: 14px 0 0; }
+.fair-foot a, .fair-sub a { color: var(--gold); text-decoration: none; }
+.fair-foot a:hover { text-decoration: underline; }
+
+.odds-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--line); }
+.odds-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.odds-table th, .odds-table td { padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.odds-table thead th { background: var(--panel-2); color: var(--faint); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.odds-table tbody tr:last-child td { border-bottom: none; }
+.odds-table .num { text-align: right; font-family: var(--mono); }
+.odds-table .g-name { font-weight: 700; }
+.odds-table .g-bet { color: var(--muted); }
+.odds-table .g-src { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.edge-pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-weight: 700; font-size: 12.5px; }
+.edge-good { background: rgba(51, 209, 127, 0.15); color: var(--win); }
+.edge-mid { background: rgba(245, 196, 81, 0.16); color: var(--gold); }
+.edge-bad { background: rgba(255, 93, 108, 0.15); color: var(--lose); }
+
+.verify-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.verify-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.05em; }
+.verify-grid label:first-child { grid-column: 1 / -1; }
+.verify-grid input { padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; color: var(--ink); font-family: var(--mono); font-size: 13px; }
+.verify-grid input:focus { outline: none; border-color: var(--gold); }
+.verify-out { margin-top: 14px; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; }
+.verify-out:empty { display: none; }
+.verify-out .vf-hmac { color: var(--muted); word-break: break-all; margin-bottom: 10px; }
+.verify-out .vf-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 14px; }
+.verify-out .vf-results span { color: var(--faint); }
+.verify-out .ok { color: var(--win); }
+.verify-out .vf-err { color: var(--lose); }
+
+@media (max-width: 520px) {
+  .verify-out .vf-results { grid-template-columns: 1fr 1fr; }
+}

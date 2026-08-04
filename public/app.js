@@ -18,6 +18,7 @@ import { renderSlots } from "./games/slots.js";
 import { renderHilo } from "./games/hilo.js";
 import { renderVpoker } from "./games/vpoker.js";
 import { renderBlackjack } from "./games/blackjack.js";
+import { renderFairness } from "./games/fairness.js";
 import { renderLeaderboard } from "./leaderboard.js";
 import { bigWin } from "./bigwin.js";
 import { startLobbyFx } from "./lobbyfx.js";
@@ -104,7 +105,7 @@ document.addEventListener("pointerdown", (e) => {
 }, { passive: true });
 
 // ---------- Router ----------
-const routes = { "": renderLobby, leaderboard: renderLeaderboard, dice: renderDice, coinflip: renderCoinflip, crash: renderCrash, mines: renderMines, tower: renderTower, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory, slots: renderSlots, hilo: renderHilo, vpoker: renderVpoker, blackjack: renderBlackjack };
+const routes = { "": renderLobby, leaderboard: renderLeaderboard, fairness: renderFairness, dice: renderDice, coinflip: renderCoinflip, crash: renderCrash, mines: renderMines, tower: renderTower, plinko: renderPlinko, roulette: renderRoulette, wheel: renderWheel, keno: renderKeno, memory: renderMemory, slots: renderSlots, hilo: renderHilo, vpoker: renderVpoker, blackjack: renderBlackjack };
 function route() {
   cleanups.forEach((fn) => { try { fn(); } catch { /* ignore */ } }); // tear down the previous view
   cleanups = [];
