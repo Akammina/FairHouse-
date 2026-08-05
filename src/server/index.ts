@@ -166,23 +166,36 @@ interface CrashRound {
   cashed: boolean; ended: boolean; nonce: number; serverSeedHash: string; clientSeed: string;
   autoCashout?: number; // if set, the server cashes out automatically at this multiplier
   cashMult?: number; payoutCents?: number; // recorded when a win is settled
+  lossTimer?: ReturnType<typeof setTimeout>; // deferred loss settlement (grace window)
 }
+// A cash-out sent just before the bust can arrive just after it (reaction + network
+// lag). We don't finalize the loss until this grace passes, so such a cash-out —
+// as long as the multiplier it locked in is below the bust point — still wins.
+const CRASH_LOSS_GRACE_MS = 800;
 const crashRounds = new Map<string, CrashRound>();
 const crashActive = new Map<string, string>();
 
 const crashHasBusted = (r: CrashRound) => crashMultiplierAt(Date.now() - r.startedAt) >= r.crashPoint;
 /** Finalize a busted round exactly once (record the loss, free the player). */
 function settleCrashLoss(r: CrashRound): void {
-  if (r.ended) return;
+  if (r.ended || r.cashed) return;
   r.ended = true;
+  if (r.lossTimer) { clearTimeout(r.lossTimer); r.lossTimer = undefined; }
   recordBet(r.playerId, "crash", r.nonce, `busted @${floor2(r.crashPoint)}×`, r.stakeCents, 0, false, r.serverSeedHash, r.clientSeed);
   crashActive.delete(r.playerId);
   setTimeout(() => crashRounds.delete(r.id), 30_000);
+}
+/** Mark a round busted but defer finalizing the loss, leaving a grace window in
+ *  which a cash-out that was sent before the bust can still win. */
+function scheduleCrashLoss(r: CrashRound): void {
+  if (r.ended || r.cashed || r.lossTimer) return;
+  r.lossTimer = setTimeout(() => settleCrashLoss(r), CRASH_LOSS_GRACE_MS);
 }
 /** Finalize a winning cash-out exactly once (credit the payout, free the player). */
 function settleCrashWin(r: CrashRound, mult: number): { payoutCents: number; balance: number } {
   const payout = Math.floor(r.stakeCents * mult);
   if (r.ended) return { payoutCents: r.payoutCents ?? payout, balance: getBalance(r.playerId) };
+  if (r.lossTimer) { clearTimeout(r.lossTimer); r.lossTimer = undefined; }
   r.cashed = true; r.ended = true; r.cashMult = mult; r.payoutCents = payout;
   const balance = credit(r.playerId, payout);
   recordBet(r.playerId, "crash", r.nonce, `cashed @${mult}×`, r.stakeCents, payout, true, r.serverSeedHash, r.clientSeed);
@@ -242,9 +255,9 @@ app.get("/api/crash/stream", (req, res) => {
     }
     const m = crashMultiplierAt(Date.now() - r.startedAt);
     if (m >= r.crashPoint) {
-      settleCrashLoss(r);
       send("crash", { crashPoint: floor2(r.crashPoint) });
       clearInterval(timer); res.end();
+      scheduleCrashLoss(r); // finalize the loss after the grace, unless a late cash-out wins first
     } else {
       send("tick", { multiplier: floor2(m) });
     }
@@ -259,7 +272,8 @@ app.get("/api/crash/status", (req, res) => {
   const auto = maybeAutoCashout(r); // settle an auto-cash-out even if the stream dropped
   if (auto) { res.json({ ended: true, cashed: true, ...auto }); return; }
   if (r.cashed) { res.json({ ended: true, cashed: true, multiplier: r.cashMult, payoutCents: r.payoutCents, balance: getBalance(r.playerId) }); return; }
-  if (r.ended || crashHasBusted(r)) { settleCrashLoss(r); res.json({ ended: true, crashPoint: floor2(r.crashPoint) }); return; }
+  if (r.ended) { res.json({ ended: true, crashPoint: floor2(r.crashPoint) }); return; }
+  if (crashHasBusted(r)) { scheduleCrashLoss(r); res.json({ ended: true, crashPoint: floor2(r.crashPoint) }); return; }
   res.json({ ended: false, multiplier: floor2(crashMultiplierAt(Date.now() - r.startedAt)) });
 });
 
@@ -273,6 +287,9 @@ app.post("/api/crash/cashout", (req, res) =>
     // instant can never turn an auto-win into a reported loss.
     const auto = maybeAutoCashout(r);
     if (auto) return { multiplier: auto.multiplier, payoutCents: auto.payoutCents, balance: auto.balance };
+    // Loss already finalized (grace elapsed) — report the honest outcome, never a
+    // phantom win. (Won't credit twice; won't claim a win we didn't pay.)
+    if (r.ended) return { crashed: true, crashPoint: floor2(r.crashPoint) };
 
     // "What you see is what you get." The client sends the multiplier it was
     // displaying (`at`) when you tapped. We clamp it to what elapsed time allows

@@ -36,7 +36,7 @@ export function renderCrash(root, ctx) {
   const canvas = $("ccanvas");
   const g = canvas.getContext("2d");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let round = null, es = null, startPerf = 0, cur = 1, crashed = false, cashed = false, animId = 0, pollTimer = 0, lastTickPerf = 0, lastTickMult = 1;
+  let round = null, es = null, startPerf = 0, cur = 1, crashed = false, cashed = false, animId = 0, pollTimer = 0;
 
   function size() {
     const r = canvas.getBoundingClientRect();
@@ -64,7 +64,7 @@ export function renderCrash(root, ctx) {
       const res = await ctx.api("/api/crash/start", { stake: Number($("cStake").value), autoCashout });
       round = { roundId: res.roundId, stakeCents: res.betCents, nonce: res.nonce, serverSeedHash: res.serverSeedHash, clientSeed: res.clientSeed, autoCashout };
       ctx.applyResult(res);
-      cur = 1; crashed = false; cashed = false; startPerf = performance.now(); lastTickPerf = performance.now(); lastTickMult = 1;
+      cur = 1; crashed = false; cashed = false; startPerf = performance.now();
       $("cmult").className = "crash-mult"; $("cmult").textContent = "1.00×";
       $("cstatus").textContent = autoCashout ? `Auto cash out set at ${autoCashout.toFixed(2)}×` : "";
       $("cstatus").className = "crash-status";
@@ -83,7 +83,6 @@ export function renderCrash(root, ctx) {
     es = new EventSource(`/api/crash/stream?roundId=${round.roundId}`);
     es.addEventListener("tick", (e) => {
       const m = JSON.parse(e.data).multiplier;
-      lastTickPerf = performance.now(); lastTickMult = m;
       startPerf = performance.now() - (Math.log(m) / CRASH_GROWTH_RATE) * 1000; // lock local clock to server progress
     });
     es.addEventListener("cashout", (e) => onWin(JSON.parse(e.data))); // server auto-cashed us out
@@ -111,15 +110,11 @@ export function renderCrash(root, ctx) {
 
   function loop() {
     if (crashed || cashed) return;
-    // Keep the shown multiplier honest so a tap can't land in a "phantom" zone the
-    // server has already busted past: never render more than ~one tick (130ms) beyond
-    // the last server-confirmed value, and freeze entirely once the server goes quiet
-    // (>170ms without a tick — the round has almost certainly ended).
-    if (performance.now() - lastTickPerf < 170) {
-      const raw = crashMultiplierAt(perfElapsed());
-      const cap = crashMultiplierAt((Math.log(lastTickMult) / CRASH_GROWTH_RATE) * 1000 + 130);
-      cur = Math.min(raw, cap);
-    }
+    // Smooth local animation, kept in step with the server by the SSE ticks. The
+    // cash-out you send locks in this exact value, and the server honors it (with a
+    // grace window) as long as it's below the hidden bust point — so a tap a beat
+    // late still wins. No display capping, so it stays smooth on every browser.
+    cur = crashMultiplierAt(perfElapsed());
     $("cmult").textContent = cur.toFixed(2) + "×";
     if (round) $("cCash").textContent = `Cash out  ${ctx.money(Math.floor(round.stakeCents * cur))}`;
     draw(cur, perfElapsed(), false);
