@@ -734,3 +734,11 @@ a, button, input, .game-card, .lvl, .tw-tile, .tw-diff, .knum, .pick, .chip-bet,
 @media (max-width: 520px) {
   .verify-out .vf-results { grid-template-columns: 1fr 1fr; }
 }
+
+/* Crash — auto cash-out field */
+.auto-cash { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.auto-input { display: inline-flex; align-items: center; gap: 3px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 8px 11px; color: var(--faint); }
+.auto-input input { width: 5ch; background: transparent; border: none; color: var(--ink); font-family: var(--mono); font-size: 14px; font-weight: 700; text-align: right; padding: 0; -moz-appearance: textfield; appearance: textfield; }
+.auto-input input::-webkit-outer-spin-button, .auto-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.auto-input input:focus { outline: none; }
+.auto-input:focus-within { border-color: var(--accent, var(--gold)); }

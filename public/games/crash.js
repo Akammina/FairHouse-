@@ -2,6 +2,10 @@
 // cash out before it crashes. The server streams the round over SSE and validates
 // cash-outs against its own clock, so it's cheat-proof; the bust point is the same
 // seed-derived formula as the old Limbo game.
+//
+// Auto Cash Out: set a target and the SERVER cashes you out the instant it's
+// reached — so a win never depends on tapping at the right millisecond (which is
+// unreliable on a phone/laggy connection). You can still cash out manually.
 import { CRASH_GROWTH_RATE, crashMultiplierAt } from "/shared/games.js";
 import { shell, renderRecent, pushRecent, stakeField, wireStake } from "./common.js";
 
@@ -18,6 +22,9 @@ export function renderCrash(root, ctx) {
       </div>
       <div id="cSetup" style="margin-top:14px">
         ${stakeField("cStake")}
+        <label class="auto-cash">Auto cash out at
+          <span class="auto-input"><input id="cAuto" type="number" min="1.01" step="0.01" placeholder="off" inputmode="decimal" /><span>×</span></span>
+        </label>
         <button id="cBet" class="btn" style="margin-top:14px;--accent:${ACCENT}">Place bet</button>
       </div>
       <button id="cCash" class="btn cashout" style="margin-top:14px;display:none">Cash out</button>`,
@@ -51,13 +58,16 @@ export function renderCrash(root, ctx) {
 
   async function startGame() {
     $("cBet").disabled = true;
+    const autoRaw = Number($("cAuto").value);
+    const autoCashout = Number.isFinite(autoRaw) && autoRaw >= 1.01 ? autoRaw : undefined;
     try {
-      const res = await ctx.api("/api/crash/start", { stake: Number($("cStake").value) });
-      round = { roundId: res.roundId, stakeCents: res.betCents, nonce: res.nonce, serverSeedHash: res.serverSeedHash, clientSeed: res.clientSeed };
+      const res = await ctx.api("/api/crash/start", { stake: Number($("cStake").value), autoCashout });
+      round = { roundId: res.roundId, stakeCents: res.betCents, nonce: res.nonce, serverSeedHash: res.serverSeedHash, clientSeed: res.clientSeed, autoCashout };
       ctx.applyResult(res);
       cur = 1; crashed = false; cashed = false; startPerf = performance.now();
       $("cmult").className = "crash-mult"; $("cmult").textContent = "1.00×";
-      $("cstatus").textContent = "";
+      $("cstatus").textContent = autoCashout ? `Auto cash out set at ${autoCashout.toFixed(2)}×` : "";
+      $("cstatus").className = "crash-status";
       setSetup(false);
       ctx.sound.whoosh();
       openStream();
@@ -75,6 +85,7 @@ export function renderCrash(root, ctx) {
       const m = JSON.parse(e.data).multiplier;
       startPerf = performance.now() - (Math.log(m) / CRASH_GROWTH_RATE) * 1000; // lock local clock to server progress
     });
+    es.addEventListener("cashout", (e) => onWin(JSON.parse(e.data))); // server auto-cashed us out
     es.addEventListener("crash", (e) => onCrash(JSON.parse(e.data).crashPoint));
     // If the stream drops mid-round, don't get stuck — poll the server for the outcome.
     es.onerror = () => { if (es) { es.close(); es = null; } if (round && !crashed && !cashed) startPolling(); };
@@ -86,8 +97,13 @@ export function renderCrash(root, ctx) {
       if (crashed || cashed || !round) { clearInterval(pollTimer); return; }
       try {
         const s = await (await fetch(`/api/crash/status?roundId=${round.roundId}`)).json();
-        if (s.ended) { clearInterval(pollTimer); if (!s.cashed) onCrash(s.crashPoint ?? cur); }
-        else if (typeof s.multiplier === "number") startPerf = performance.now() - (Math.log(s.multiplier) / CRASH_GROWTH_RATE) * 1000;
+        if (s.ended) {
+          clearInterval(pollTimer);
+          if (s.cashed && typeof s.multiplier === "number") onWin(s); // auto-cash-out landed
+          else if (!s.cashed) onCrash(s.crashPoint ?? cur);
+        } else if (typeof s.multiplier === "number") {
+          startPerf = performance.now() - (Math.log(s.multiplier) / CRASH_GROWTH_RATE) * 1000;
+        }
       } catch { /* keep trying */ }
     }, 500);
   }
@@ -107,15 +123,7 @@ export function renderCrash(root, ctx) {
     try {
       const res = await ctx.api("/api/crash/cashout", { roundId: round.roundId });
       if (res.crashed) { onCrash(res.crashPoint); return; } // it busted before the click landed
-      cashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); if (es) { es.close(); es = null; }
-      cur = res.multiplier;
-      $("cmult").textContent = res.multiplier.toFixed(2) + "×"; $("cmult").className = "crash-mult win";
-      $("cstatus").textContent = `Cashed out @ ${res.multiplier.toFixed(2)}× — won +${ctx.money(res.payoutCents - round.stakeCents)}`;
-      $("cstatus").className = "crash-status win";
-      draw(cur, perfElapsed(), false);
-      ctx.sound.win(); ctx.applyResult(res);
-      pushRecent(ctx, "crash", `cashed @${res.multiplier.toFixed(2)}×`, round.stakeCents, res.payoutCents, true, round.nonce, round.serverSeedHash, round.clientSeed);
-      endRound();
+      onWin(res);
     } catch (e) {
       $("cstatus").textContent = e.message; $("cstatus").className = "crash-status lose";
     } finally {
@@ -123,9 +131,26 @@ export function renderCrash(root, ctx) {
     }
   }
 
+  // Shared win handler for both a manual cash-out and a server auto-cash-out.
+  function onWin(res) {
+    if (cashed || crashed || !round) return;
+    cashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); if (es) { es.close(); es = null; }
+    $("cCash").style.display = "none"; // no dead button to tap
+    cur = res.multiplier;
+    $("cmult").textContent = res.multiplier.toFixed(2) + "×"; $("cmult").className = "crash-mult win";
+    $("cstatus").textContent = `Cashed out @ ${res.multiplier.toFixed(2)}× — won +${ctx.money(res.payoutCents - round.stakeCents)}`;
+    $("cstatus").className = "crash-status win";
+    draw(cur, perfElapsed(), false);
+    ctx.sound.win();
+    if (typeof res.balance === "number") ctx.applyResult({ balance: res.balance });
+    pushRecent(ctx, "crash", `cashed @${res.multiplier.toFixed(2)}×`, round.stakeCents, res.payoutCents, true, round.nonce, round.serverSeedHash, round.clientSeed);
+    endRound();
+  }
+
   function onCrash(cp) {
     if (cashed || crashed) return;
     crashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); if (es) { es.close(); es = null; }
+    $("cCash").style.display = "none"; // no dead button to tap
     cur = cp;
     $("cmult").textContent = cp.toFixed(2) + "×"; $("cmult").className = "crash-mult lose";
     $("cstatus").textContent = `Crashed @ ${cp.toFixed(2)}× — lost ${ctx.money(round.stakeCents)}`;

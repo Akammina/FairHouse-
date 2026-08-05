@@ -164,6 +164,8 @@ const floor2 = (n: number) => Math.floor(n * 100) / 100;
 interface CrashRound {
   id: string; playerId: string; stakeCents: number; crashPoint: number; startedAt: number;
   cashed: boolean; ended: boolean; nonce: number; serverSeedHash: string; clientSeed: string;
+  autoCashout?: number; // if set, the server cashes out automatically at this multiplier
+  cashMult?: number; payoutCents?: number; // recorded when a win is settled
 }
 const crashRounds = new Map<string, CrashRound>();
 const crashActive = new Map<string, string>();
@@ -177,12 +179,37 @@ function settleCrashLoss(r: CrashRound): void {
   crashActive.delete(r.playerId);
   setTimeout(() => crashRounds.delete(r.id), 30_000);
 }
+/** Finalize a winning cash-out exactly once (credit the payout, free the player). */
+function settleCrashWin(r: CrashRound, mult: number): { payoutCents: number; balance: number } {
+  const payout = Math.floor(r.stakeCents * mult);
+  if (r.ended) return { payoutCents: r.payoutCents ?? payout, balance: getBalance(r.playerId) };
+  r.cashed = true; r.ended = true; r.cashMult = mult; r.payoutCents = payout;
+  const balance = credit(r.playerId, payout);
+  recordBet(r.playerId, "crash", r.nonce, `cashed @${mult}×`, r.stakeCents, payout, true, r.serverSeedHash, r.clientSeed);
+  crashActive.delete(r.playerId);
+  setTimeout(() => crashRounds.delete(r.id), 30_000);
+  return { payoutCents: payout, balance };
+}
+/** If an auto-cash-out target has been reached (and it's below the bust point),
+ *  settle the win. Returns the win details, or null if nothing to do yet. */
+function maybeAutoCashout(r: CrashRound): { multiplier: number; payoutCents: number; balance: number } | null {
+  if (r.ended || r.autoCashout === undefined || r.autoCashout > r.crashPoint) return null;
+  if (crashMultiplierAt(Date.now() - r.startedAt) < r.autoCashout) return null;
+  const mult = r.autoCashout; // already normalized to 2 dp — pay exactly what the player set
+  const w = settleCrashWin(r, mult);
+  return { multiplier: mult, ...w };
+}
 
 app.post("/api/crash/start", (req, res) =>
   wrap(res, async () => {
     const p = requirePlayer(req.body?.playerId);
     const bet = stakeCents(req.body?.stake);
     if (!(bet > 0)) throw new Error("Invalid stake");
+    // Optional auto-cash-out target: the server settles the win at this multiplier
+    // the instant it's reached, so a win never depends on tapping in time.
+    let autoCashout: number | undefined = Number(req.body?.autoCashout);
+    if (!Number.isFinite(autoCashout) || autoCashout < 1.01) autoCashout = undefined;
+    else autoCashout = Math.round(Math.min(autoCashout, 1_000_000) * 100) / 100; // clean 2-dp target
     const prev = crashActive.get(p.id);
     if (prev) { crashRounds.delete(prev); crashActive.delete(p.id); }
 
@@ -191,7 +218,7 @@ app.post("/api/crash/start", (req, res) =>
     const roundId = randomBytes(8).toString("hex");
     crashRounds.set(roundId, {
       id: roundId, playerId: p.id, stakeCents: bet, crashPoint, startedAt: Date.now(),
-      cashed: false, ended: false, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed,
+      cashed: false, ended: false, nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed, autoCashout,
     });
     crashActive.set(p.id, roundId);
     return { roundId, betCents: bet, balance: getBalance(p.id), nonce: p.nonce, serverSeedHash: p.server_seed_hash, clientSeed: p.client_seed };
@@ -207,6 +234,12 @@ app.get("/api/crash/stream", (req, res) => {
   const send = (event: string, data: unknown) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   const timer = setInterval(() => {
     if (r.ended || r.cashed) { clearInterval(timer); res.end(); return; }
+    const auto = maybeAutoCashout(r);
+    if (auto) {
+      send("cashout", auto);
+      clearInterval(timer); res.end();
+      return;
+    }
     const m = crashMultiplierAt(Date.now() - r.startedAt);
     if (m >= r.crashPoint) {
       settleCrashLoss(r);
@@ -223,7 +256,9 @@ app.get("/api/crash/stream", (req, res) => {
 app.get("/api/crash/status", (req, res) => {
   const r = crashRounds.get(String(req.query.roundId));
   if (!r) { res.json({ ended: true, crashPoint: null }); return; }
-  if (r.cashed) { res.json({ ended: true, cashed: true }); return; }
+  const auto = maybeAutoCashout(r); // settle an auto-cash-out even if the stream dropped
+  if (auto) { res.json({ ended: true, cashed: true, ...auto }); return; }
+  if (r.cashed) { res.json({ ended: true, cashed: true, multiplier: r.cashMult, payoutCents: r.payoutCents, balance: getBalance(r.playerId) }); return; }
   if (r.ended || crashHasBusted(r)) { settleCrashLoss(r); res.json({ ended: true, crashPoint: floor2(r.crashPoint) }); return; }
   res.json({ ended: false, multiplier: floor2(crashMultiplierAt(Date.now() - r.startedAt)) });
 });
@@ -234,19 +269,18 @@ app.post("/api/crash/cashout", (req, res) =>
     if (!r) throw new Error("Round not found");
     assertOwner(r, req);
     if (r.cashed) throw new Error("Already cashed out");
+    // Honor a reached auto-cash-out target first, so a tap that lands in the same
+    // instant can never turn an auto-win into a reported loss.
+    const auto = maybeAutoCashout(r);
+    if (auto) return { multiplier: auto.multiplier, payoutCents: auto.payoutCents, balance: auto.balance };
     // If it already busted (flagged, or just now), the cash-out is a loss — report the crash.
     if (r.ended || crashHasBusted(r)) {
       settleCrashLoss(r);
       return { crashed: true, crashPoint: floor2(r.crashPoint) };
     }
     const mult = floor2(crashMultiplierAt(Date.now() - r.startedAt));
-    const payout = Math.floor(r.stakeCents * mult);
-    r.cashed = true; r.ended = true;
-    const balance = credit(r.playerId, payout);
-    recordBet(r.playerId, "crash", r.nonce, `cashed @${mult}×`, r.stakeCents, payout, true, r.serverSeedHash, r.clientSeed);
-    crashActive.delete(r.playerId);
-    setTimeout(() => crashRounds.delete(r.id), 30_000);
-    return { multiplier: mult, payoutCents: payout, balance };
+    const w = settleCrashWin(r, mult);
+    return { multiplier: mult, payoutCents: w.payoutCents, balance: w.balance };
   }),
 );
 
