@@ -36,7 +36,7 @@ export function renderCrash(root, ctx) {
   const canvas = $("ccanvas");
   const g = canvas.getContext("2d");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let round = null, es = null, startPerf = 0, cur = 1, crashed = false, cashed = false, animId = 0, pollTimer = 0;
+  let round = null, es = null, startPerf = 0, cur = 1, crashed = false, cashed = false, animId = 0, pollTimer = 0, watchdog = 0, lastEventAt = 0;
 
   function size() {
     const r = canvas.getBoundingClientRect();
@@ -46,7 +46,7 @@ export function renderCrash(root, ctx) {
   }
   const onResize = () => { size(); draw(cur, perfElapsed(), crashed); };
   window.addEventListener("resize", onResize);
-  ctx.onCleanup(() => { window.removeEventListener("resize", onResize); cancelAnimationFrame(animId); clearInterval(pollTimer); if (es) es.close(); });
+  ctx.onCleanup(() => { window.removeEventListener("resize", onResize); cancelAnimationFrame(animId); clearInterval(pollTimer); clearInterval(watchdog); if (es) es.close(); });
   size();
 
   const perfElapsed = () => performance.now() - startPerf;
@@ -64,13 +64,15 @@ export function renderCrash(root, ctx) {
       const res = await ctx.api("/api/crash/start", { stake: Number($("cStake").value), autoCashout });
       round = { roundId: res.roundId, stakeCents: res.betCents, nonce: res.nonce, serverSeedHash: res.serverSeedHash, clientSeed: res.clientSeed, autoCashout };
       ctx.applyResult(res);
-      cur = 1; crashed = false; cashed = false; startPerf = performance.now();
+      cur = 1; crashed = false; cashed = false; startPerf = performance.now(); clearInterval(pollTimer); pollTimer = 0;
       $("cmult").className = "crash-mult"; $("cmult").textContent = "1.00×";
       $("cstatus").textContent = autoCashout ? `Auto cash out set at ${autoCashout.toFixed(2)}×` : "";
       $("cstatus").className = "crash-status";
       setSetup(false);
       ctx.sound.whoosh();
+      lastEventAt = performance.now();
       openStream();
+      startWatchdog();
       loop();
     } catch (e) {
       $("cstatus").textContent = e.message; $("cstatus").className = "crash-status lose";
@@ -82,23 +84,35 @@ export function renderCrash(root, ctx) {
   function openStream() {
     es = new EventSource(`/api/crash/stream?roundId=${round.roundId}`);
     es.addEventListener("tick", (e) => {
+      lastEventAt = performance.now();
       const m = JSON.parse(e.data).multiplier;
       startPerf = performance.now() - (Math.log(m) / CRASH_GROWTH_RATE) * 1000; // lock local clock to server progress
     });
-    es.addEventListener("cashout", (e) => onWin(JSON.parse(e.data))); // server auto-cashed us out
-    es.addEventListener("crash", (e) => onCrash(JSON.parse(e.data).crashPoint));
+    es.addEventListener("cashout", (e) => { lastEventAt = performance.now(); onWin(JSON.parse(e.data)); }); // server auto-cashed us out
+    es.addEventListener("crash", (e) => { lastEventAt = performance.now(); onCrash(JSON.parse(e.data).crashPoint); });
     // If the stream drops mid-round, don't get stuck — poll the server for the outcome.
     es.onerror = () => { if (es) { es.close(); es = null; } if (round && !crashed && !cashed) startPolling(); };
   }
 
+  // Safety net: some browsers (notably desktop Safari) can open the SSE connection
+  // but then deliver nothing and never fire `error`. If the stream goes quiet for
+  // ~1.2s, fall back to polling so the round always resolves and cash-out works.
+  function startWatchdog() {
+    clearInterval(watchdog);
+    watchdog = setInterval(() => {
+      if (!round || crashed || cashed) { clearInterval(watchdog); return; }
+      if (!pollTimer && performance.now() - lastEventAt > 1200) { if (es) { es.close(); es = null; } startPolling(); }
+    }, 400);
+  }
+
   function startPolling() {
-    clearInterval(pollTimer);
+    if (pollTimer) return; // already polling
     pollTimer = setInterval(async () => {
-      if (crashed || cashed || !round) { clearInterval(pollTimer); return; }
+      if (crashed || cashed || !round) { clearInterval(pollTimer); pollTimer = 0; return; }
       try {
         const s = await (await fetch(`/api/crash/status?roundId=${round.roundId}`)).json();
         if (s.ended) {
-          clearInterval(pollTimer);
+          clearInterval(pollTimer); pollTimer = 0;
           if (s.cashed && typeof s.multiplier === "number") onWin(s); // auto-cash-out landed
           else if (!s.cashed) onCrash(s.crashPoint ?? cur);
         } else if (typeof s.multiplier === "number") {
@@ -139,7 +153,7 @@ export function renderCrash(root, ctx) {
   // Shared win handler for both a manual cash-out and a server auto-cash-out.
   function onWin(res) {
     if (cashed || crashed || !round) return;
-    cashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); if (es) { es.close(); es = null; }
+    cashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); pollTimer = 0; clearInterval(watchdog); if (es) { es.close(); es = null; }
     $("cCash").style.display = "none"; // no dead button to tap
     cur = res.multiplier;
     $("cmult").textContent = res.multiplier.toFixed(2) + "×"; $("cmult").className = "crash-mult win";
@@ -154,7 +168,7 @@ export function renderCrash(root, ctx) {
 
   function onCrash(cp) {
     if (cashed || crashed) return;
-    crashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); if (es) { es.close(); es = null; }
+    crashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); pollTimer = 0; clearInterval(watchdog); if (es) { es.close(); es = null; }
     $("cCash").style.display = "none"; // no dead button to tap
     cur = cp;
     $("cmult").textContent = cp.toFixed(2) + "×"; $("cmult").className = "crash-mult lose";

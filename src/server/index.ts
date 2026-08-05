@@ -63,8 +63,15 @@ app.use(helmet({
 app.use("/api", rateLimit({ windowMs: 10_000, max: 120, standardHeaders: true, legacyHeaders: false }));
 
 app.use(express.json({ limit: "16kb" }));
-app.use(express.static(join(__dirname, "../../public")));
-app.use("/shared", express.static(join(__dirname, "../shared")));
+
+// Force browsers to revalidate JS/HTML every load (they still get a fast 304 when
+// unchanged) so a new deploy is picked up immediately — no more stale-cache bugs
+// where an old build lingers in the browser.
+const noCacheJs = (res: express.Response, path: string) => {
+  if (path.endsWith(".js") || path.endsWith(".html")) res.setHeader("Cache-Control", "no-cache");
+};
+app.use(express.static(join(__dirname, "../../public"), { setHeaders: noCacheJs }));
+app.use("/shared", express.static(join(__dirname, "../shared"), { setHeaders: noCacheJs }));
 
 const stakeCents = (stake: unknown) => Math.round(Number(stake) * 100);
 function requirePlayer(id: unknown) {
