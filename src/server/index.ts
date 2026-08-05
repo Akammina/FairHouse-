@@ -273,14 +273,22 @@ app.post("/api/crash/cashout", (req, res) =>
     // instant can never turn an auto-win into a reported loss.
     const auto = maybeAutoCashout(r);
     if (auto) return { multiplier: auto.multiplier, payoutCents: auto.payoutCents, balance: auto.balance };
-    // If it already busted (flagged, or just now), the cash-out is a loss — report the crash.
-    if (r.ended || crashHasBusted(r)) {
-      settleCrashLoss(r);
-      return { crashed: true, crashPoint: floor2(r.crashPoint) };
+
+    // "What you see is what you get." The client sends the multiplier it was
+    // displaying (`at`) when you tapped. We clamp it to what elapsed time allows
+    // — you can never claim more than the server's own clock reached — so it's
+    // provably fair and unspoofable. Then it's a win as long as that locked value
+    // is below the hidden crash point, even if the request arrived a beat late.
+    const serverMult = crashMultiplierAt(Date.now() - r.startedAt);
+    const claimed = Number(req.body?.at);
+    const at = Math.max(1, Math.min(Number.isFinite(claimed) ? claimed : serverMult, serverMult));
+    if (at < r.crashPoint) {
+      const mult = floor2(at);
+      const w = settleCrashWin(r, mult);
+      return { multiplier: mult, payoutCents: w.payoutCents, balance: w.balance };
     }
-    const mult = floor2(crashMultiplierAt(Date.now() - r.startedAt));
-    const w = settleCrashWin(r, mult);
-    return { multiplier: mult, payoutCents: w.payoutCents, balance: w.balance };
+    settleCrashLoss(r);
+    return { crashed: true, crashPoint: floor2(r.crashPoint) };
   }),
 );
 
