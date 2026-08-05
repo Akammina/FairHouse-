@@ -12,6 +12,8 @@ import { shell, renderRecent, pushRecent, stakeField, wireStake } from "./common
 const ACCENT = "#38d0e0";
 
 export function renderCrash(root, ctx) {
+  // Add ?debug to the URL to show a live diagnostic readout (for troubleshooting).
+  const DEBUG = new URLSearchParams(location.search).has("debug");
   shell(root, {
     title: "Crash", iconKey: "crash", accent: ACCENT,
     stage: `
@@ -20,6 +22,7 @@ export function renderCrash(root, ctx) {
         <div class="crash-mult" id="cmult">1.00×</div>
         <div class="crash-status" id="cstatus">Place a bet and cash out before it crashes.</div>
       </div>
+      ${DEBUG ? '<pre id="cdbg" style="margin-top:10px;padding:10px;background:#0a0e17;border:1px solid #2a3a4a;border-radius:8px;font-size:11px;line-height:1.5;color:#8fe;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto">debug ready — place a bet</pre>' : ''}
       <div id="cSetup" style="margin-top:14px">
         ${stakeField("cStake")}
         <label class="auto-cash">Auto cash out at
@@ -51,6 +54,26 @@ export function renderCrash(root, ctx) {
 
   const perfElapsed = () => performance.now() - startPerf;
 
+  // ---- diagnostics (only active with ?debug) ----
+  let dbgTicks = 0, dbgLastTickAt = 0, dbgLog = [];
+  const now = () => (performance.now() / 1000).toFixed(1);
+  function dbg(msg) {
+    if (!DEBUG) return;
+    dbgLog.unshift(`${now()}s  ${msg}`);
+    dbgLog = dbgLog.slice(0, 9);
+    renderDbg();
+  }
+  function renderDbg() {
+    if (!DEBUG) return;
+    const el = $("cdbg"); if (!el) return;
+    const esState = es ? ["CONNECTING", "OPEN", "CLOSED"][es.readyState] : "none";
+    const since = dbgLastTickAt ? Math.round(performance.now() - dbgLastTickAt) : "-";
+    el.textContent =
+      `SSE:${esState}  ticks:${dbgTicks}  sinceTick:${since}ms  poll:${pollTimer ? "ON" : "off"}\n` +
+      `cur:${cur.toFixed(2)}×  round:${round ? "yes" : "no"}  crashed:${crashed}  cashed:${cashed}\n` +
+      `─────\n` + dbgLog.join("\n");
+  }
+
   function setSetup(on) { $("cSetup").style.display = on ? "" : "none"; $("cCash").style.display = on ? "none" : ""; }
 
   $("cBet").addEventListener("click", startGame);
@@ -65,6 +88,7 @@ export function renderCrash(root, ctx) {
       round = { roundId: res.roundId, stakeCents: res.betCents, nonce: res.nonce, serverSeedHash: res.serverSeedHash, clientSeed: res.clientSeed, autoCashout };
       ctx.applyResult(res);
       cur = 1; crashed = false; cashed = false; startPerf = performance.now(); clearInterval(pollTimer); pollTimer = 0;
+      dbgTicks = 0; dbgLastTickAt = 0; dbgLog = []; dbg(`bet placed${autoCashout ? " auto@" + autoCashout : ""}`);
       $("cmult").className = "crash-mult"; $("cmult").textContent = "1.00×";
       $("cstatus").textContent = autoCashout ? `Auto cash out set at ${autoCashout.toFixed(2)}×` : "";
       $("cstatus").className = "crash-status";
@@ -83,15 +107,18 @@ export function renderCrash(root, ctx) {
 
   function openStream() {
     es = new EventSource(`/api/crash/stream?roundId=${round.roundId}`);
+    es.addEventListener("open", () => dbg("SSE open"));
     es.addEventListener("tick", (e) => {
       lastEventAt = performance.now();
+      dbgTicks++; dbgLastTickAt = performance.now();
+      if (dbgTicks === 1) dbg("1st tick received");
       const m = JSON.parse(e.data).multiplier;
       startPerf = performance.now() - (Math.log(m) / CRASH_GROWTH_RATE) * 1000; // lock local clock to server progress
     });
-    es.addEventListener("cashout", (e) => { lastEventAt = performance.now(); onWin(JSON.parse(e.data)); }); // server auto-cashed us out
-    es.addEventListener("crash", (e) => { lastEventAt = performance.now(); onCrash(JSON.parse(e.data).crashPoint); });
+    es.addEventListener("cashout", (e) => { lastEventAt = performance.now(); dbg("SSE cashout event"); onWin(JSON.parse(e.data)); }); // server auto-cashed us out
+    es.addEventListener("crash", (e) => { lastEventAt = performance.now(); dbg("SSE crash event"); onCrash(JSON.parse(e.data).crashPoint); });
     // If the stream drops mid-round, don't get stuck — poll the server for the outcome.
-    es.onerror = () => { if (es) { es.close(); es = null; } if (round && !crashed && !cashed) startPolling(); };
+    es.onerror = () => { dbg("SSE error → poll"); if (es) { es.close(); es = null; } if (round && !crashed && !cashed) startPolling(); };
   }
 
   // Safety net: some browsers (notably desktop Safari) can open the SSE connection
@@ -101,7 +128,7 @@ export function renderCrash(root, ctx) {
     clearInterval(watchdog);
     watchdog = setInterval(() => {
       if (!round || crashed || cashed) { clearInterval(watchdog); return; }
-      if (!pollTimer && performance.now() - lastEventAt > 1200) { if (es) { es.close(); es = null; } startPolling(); }
+      if (!pollTimer && performance.now() - lastEventAt > 1200) { dbg("watchdog: SSE quiet → poll"); if (es) { es.close(); es = null; } startPolling(); }
     }, 400);
   }
 
@@ -132,18 +159,22 @@ export function renderCrash(root, ctx) {
     $("cmult").textContent = cur.toFixed(2) + "×";
     if (round) $("cCash").textContent = `Cash out  ${ctx.money(Math.floor(round.stakeCents * cur))}`;
     draw(cur, perfElapsed(), false);
+    if (DEBUG) renderDbg();
     animId = requestAnimationFrame(loop);
   }
 
   async function cashOut() {
     if (!round || crashed || cashed) return;
     $("cCash").disabled = true;
+    dbg(`cashout REQ at=${cur.toFixed(2)}`);
     try {
       // Send the multiplier we're showing so the server locks in what you saw.
       const res = await ctx.api("/api/crash/cashout", { roundId: round.roundId, at: cur });
+      dbg(`cashout RESP ${res.crashed ? "crashed@" + res.crashPoint : "won@" + res.multiplier}`);
       if (res.crashed) { onCrash(res.crashPoint); return; } // it busted before you tapped
       onWin(res);
     } catch (e) {
+      dbg(`cashout ERROR ${e.message}`);
       $("cstatus").textContent = e.message; $("cstatus").className = "crash-status lose";
     } finally {
       $("cCash").disabled = false;
@@ -153,6 +184,7 @@ export function renderCrash(root, ctx) {
   // Shared win handler for both a manual cash-out and a server auto-cash-out.
   function onWin(res) {
     if (cashed || crashed || !round) return;
+    dbg(`WIN @${res.multiplier}`);
     cashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); pollTimer = 0; clearInterval(watchdog); if (es) { es.close(); es = null; }
     $("cCash").style.display = "none"; // no dead button to tap
     cur = res.multiplier;
@@ -168,6 +200,7 @@ export function renderCrash(root, ctx) {
 
   function onCrash(cp) {
     if (cashed || crashed) return;
+    dbg(`CRASH @${cp}`);
     crashed = true; cancelAnimationFrame(animId); clearInterval(pollTimer); pollTimer = 0; clearInterval(watchdog); if (es) { es.close(); es = null; }
     $("cCash").style.display = "none"; // no dead button to tap
     cur = cp;
