@@ -742,3 +742,7 @@ a, button, input, .game-card, .lvl, .tw-tile, .tw-diff, .knum, .pick, .chip-bet,
 .auto-input input::-webkit-outer-spin-button, .auto-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .auto-input input:focus { outline: none; }
 .auto-input:focus-within { border-color: var(--accent, var(--gold)); }
+
+/* Live cash-out amount inside the button — ignores pointer events so the click
+   always lands on the button itself (desktop Safari drops clicks otherwise). */
+.cash-val { pointer-events: none; font-variant-numeric: tabular-nums; }

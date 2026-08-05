@@ -30,7 +30,7 @@ export function renderCrash(root, ctx) {
         </label>
         <button id="cBet" class="btn" style="margin-top:14px;--accent:${ACCENT}">Place bet</button>
       </div>
-      <button id="cCash" class="btn cashout" style="margin-top:14px;display:none">Cash out</button>`,
+      <button id="cCash" class="btn cashout" style="margin-top:14px;display:none">Cash out <span id="cCashVal" class="cash-val"></span></button>`,
   });
   renderRecent(ctx, "crash");
   wireStake("cStake");
@@ -157,7 +157,14 @@ export function renderCrash(root, ctx) {
     // late still wins. No display capping, so it stays smooth on every browser.
     cur = crashMultiplierAt(perfElapsed());
     $("cmult").textContent = cur.toFixed(2) + "×";
-    if (round) $("cCash").textContent = `Cash out  ${ctx.money(Math.floor(round.stakeCents * cur))}`;
+    // Update ONLY the inner value span (which ignores pointer events), never the
+    // button's own text — rewriting the button text every frame makes desktop
+    // Safari drop the click (mousedown/up land on a text node that got replaced).
+    if (round) {
+      const amt = ctx.money(Math.floor(round.stakeCents * cur));
+      const el = $("cCashVal");
+      if (el && el.textContent !== amt) el.textContent = amt;
+    }
     draw(cur, perfElapsed(), false);
     if (DEBUG) renderDbg();
     animId = requestAnimationFrame(loop);
