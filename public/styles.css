@@ -746,3 +746,11 @@ a, button, input, .game-card, .lvl, .tw-tile, .tw-diff, .knum, .pick, .chip-bet,
 /* Live cash-out amount inside the button — ignores pointer events so the click
    always lands on the button itself (desktop Safari drops clicks otherwise). */
 .cash-val { pointer-events: none; font-variant-numeric: tabular-nums; }
+
+/* Fairness page — live Monte-Carlo simulator */
+.sim-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.sim-controls select { flex: 1; min-width: 200px; padding: 11px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); font-size: 14px; }
+.sim-controls .btn { width: auto; padding: 12px 20px; white-space: nowrap; }
+.sim-chart { width: 100%; height: 240px; display: block; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; }
+.sim-out { margin-top: 12px; font-family: var(--mono); font-size: 13px; color: var(--muted); line-height: 1.5; }
+.sim-out .ok { color: var(--win); }

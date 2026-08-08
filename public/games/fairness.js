@@ -7,10 +7,10 @@
  *   2. A live verifier: paste a server seed + client seed + nonce and recompute
  *      the outcome yourself.
  */
-import { hmacSha256Hex } from "/shared/provablyFair.js";
+import { hmacSha256Hex, HOUSE_EDGE } from "/shared/provablyFair.js";
 import {
-  diceRoll, limboResult, coinResult,
-  rouletteNumber, rouletteColor,
+  diceRoll, limboResult, coinResult, diceMultiplier, COIN_MULTIPLIER,
+  rouletteNumber, rouletteColor, ROULETTE_RED,
   wheelSegment, wheelMultiplier, WHEEL_SEGMENTS,
   plinkoPath, plinkoBucket, plinkoMultiplier, PLINKO_MULTIPLIERS, PLINKO_ROWS,
   slotSpin, slotPayout, SLOT_PAYS, SLOT_COUNT,
@@ -66,6 +66,66 @@ function oddsRows() {
 
 const edgeClass = (edge) => (edge <= 0.015 ? "edge-good" : edge <= 0.03 ? "edge-mid" : "edge-bad");
 
+// ---- Live Monte-Carlo: one simulated round → payout multiplier per unit staked.
+// Uniform sampling is equivalent to the HMAC's uniform entropy, so these match the
+// real games (and the Python lab) exactly, just far faster.
+const rint = (n) => Math.floor(Math.random() * n);
+const SIM = {
+  dice: { label: "Dice — roll under 50", theory: 0.99, play: () => (Math.random() * 100 < 50 ? diceMultiplier(50) : 0) },
+  coinflip: { label: "Coinflip", theory: 0.99, play: () => (Math.random() < 0.5 ? COIN_MULTIPLIER : 0) },
+  limbo: { label: "Limbo / Crash — cash out at 2×", theory: 0.99, play: () => ((1 - HOUSE_EDGE) / (1 - Math.random()) >= 2 ? 2 : 0) },
+  wheel: { label: "Wheel", theory: rtpWheel(), play: () => WHEEL_SEGMENTS[rint(WHEEL_SEGMENTS.length)] },
+  roulette: { label: "Roulette — bet red", theory: rtpRoulette(), play: () => { const n = rint(37); return n !== 0 && ROULETTE_RED.has(n) ? 2 : 0; } },
+  plinko: { label: "Plinko — 12 rows", theory: rtpPlinko(), play: () => { let b = 0; for (let i = 0; i < PLINKO_ROWS; i++) if (Math.random() < 0.5) b++; return PLINKO_MULTIPLIERS[b]; } },
+  slots: { label: "Slots — three reels", theory: rtpSlots(), play: () => { const a = rint(SLOT_COUNT), b = rint(SLOT_COUNT), c = rint(SLOT_COUNT); return a === b && b === c ? SLOT_PAYS[a] : 0; } },
+  keno: { label: "Keno — 8 spots", theory: rtpKeno(8), play: () => { const drawn = new Set(); while (drawn.size < KENO_DRAW) drawn.add(1 + rint(KENO_POOL)); let hits = 0; for (let s = 1; s <= 8; s++) if (drawn.has(s)) hits++; return KENO_PAYTABLE[8][hits] ?? 0; } },
+};
+
+// Draw the running-RTP convergence chart on the canvas.
+function drawSimChart(cv, points, theory) {
+  if (!cv) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth || 600, H = cv.clientHeight || 240;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const padL = 46, padR = 14, padT = 14, padB = 26;
+  const th = theory * 100;
+  let lo = th - 8, hi = th + 12;
+  for (const [, r] of points) { const v = r * 100; if (v < lo) lo = v - 2; if (v > hi) hi = v + 2; }
+  const maxN = points.length ? points[points.length - 1][0] : 1000;
+  const lminN = 2; // log10(100)
+  const lmaxN = Math.max(lminN + 0.5, Math.log10(maxN));
+  const xmap = (n) => padL + (Math.log10(Math.max(100, n)) - lminN) / (lmaxN - lminN) * (W - padL - padR);
+  const ymap = (v) => (H - padB) - (v - lo) / (hi - lo) * (H - padB - padT);
+
+  g.font = "10px ui-monospace, monospace";
+  // y gridlines + labels
+  g.strokeStyle = "rgba(255,255,255,0.07)"; g.fillStyle = "#8a97a8"; g.lineWidth = 1;
+  for (let k = 0; k <= 4; k++) {
+    const v = lo + (hi - lo) * (k / 4);
+    const y = ymap(v);
+    g.beginPath(); g.moveTo(padL, y); g.lineTo(W - padR, y); g.stroke();
+    g.fillText(v.toFixed(0) + "%", 6, y + 3);
+  }
+  // theoretical line (gold, dashed)
+  g.strokeStyle = "#f5c451"; g.setLineDash([5, 4]); g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(padL, ymap(th)); g.lineTo(W - padR, ymap(th)); g.stroke();
+  g.setLineDash([]);
+  // running RTP line (accent)
+  if (points.length > 1) {
+    g.strokeStyle = "#38d0e0"; g.lineWidth = 2; g.lineJoin = "round";
+    g.beginPath();
+    points.forEach(([n, r], i) => { const x = xmap(n), y = ymap(r * 100); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.stroke();
+    const [ln, lr] = points[points.length - 1];
+    g.fillStyle = "#38d0e0"; g.beginPath(); g.arc(xmap(ln), ymap(lr * 100), 3, 0, Math.PI * 2); g.fill();
+  }
+  // x label
+  g.fillStyle = "#5a6675"; g.fillText("rounds (log scale) →", padL, H - 8);
+}
+
 export function renderFairness(root) {
   const rows = oddsRows();
 
@@ -110,6 +170,25 @@ export function renderFairness(root) {
       </section>
 
       <section class="fair-card">
+        <div class="fair-card-head">
+          <h2>Run a Monte-Carlo simulation</h2>
+          <a class="fair-link" href="${LAB_URL}" target="_blank" rel="noopener">Python lab (millions of rounds) →</a>
+        </div>
+        <p class="fair-sub">"Monte-Carlo" = play a game a huge number of times and measure what actually
+          happens. Pick a game and hit run — it simulates rounds right here in your browser using the same
+          math the casino uses, and you'll watch the measured return-to-player (blue) converge to its true
+          value (gold dashed line).</p>
+        <div class="sim-controls">
+          <select id="simGame">
+            ${Object.entries(SIM).map(([k, v], i) => `<option value="${k}"${i === 0 ? " selected" : ""}>${v.label}</option>`).join("")}
+          </select>
+          <button id="simRun" class="btn">Run 500,000 rounds</button>
+        </div>
+        <canvas id="simChart" class="sim-chart"></canvas>
+        <div id="simOut" class="sim-out">Choose a game and press run.</div>
+      </section>
+
+      <section class="fair-card">
         <h2>Verify a bet</h2>
         <p class="fair-sub">After you rotate your seed (in the Provably Fair panel), paste the revealed
           server seed, your client seed, and the bet's nonce to reproduce its result.</p>
@@ -124,6 +203,35 @@ export function renderFairness(root) {
     </div>`;
 
   const $ = (id) => document.getElementById(id);
+
+  // ---- Monte-Carlo runner ----
+  let simRunning = false;
+  drawSimChart($("simChart"), [], SIM[$("simGame").value].theory); // empty axes on load
+  $("simGame").addEventListener("change", () => {
+    if (!simRunning) { drawSimChart($("simChart"), [], SIM[$("simGame").value].theory); $("simOut").textContent = "Press run."; }
+  });
+  $("simRun").addEventListener("click", async () => {
+    if (simRunning) return;
+    simRunning = true;
+    const btn = $("simRun"); btn.disabled = true; btn.textContent = "Running…";
+    const cfg = SIM[$("simGame").value];
+    const N = 500_000, batch = 4000;
+    const points = [];
+    let done = 0, total = 0, wins = 0;
+    while (done < N) {
+      const end = Math.min(done + batch, N);
+      for (; done < end; done++) { const p = cfg.play(); total += p; if (p > 0) wins++; }
+      points.push([done, total / done]);
+      drawSimChart($("simChart"), points, cfg.theory);
+      const rtp = total / done;
+      $("simOut").innerHTML = `<b>${done.toLocaleString()}</b> rounds &nbsp;·&nbsp; measured RTP <b class="ok">${(rtp * 100).toFixed(2)}%</b> ` +
+        `&nbsp;·&nbsp; house edge <b>${((1 - rtp) * 100).toFixed(2)}%</b> &nbsp;·&nbsp; hit rate ${((wins / done) * 100).toFixed(1)}% ` +
+        `&nbsp;·&nbsp; theory <b style="color:#f5c451">${(cfg.theory * 100).toFixed(2)}%</b>`;
+      await new Promise((r) => requestAnimationFrame(r)); // yield so the chart animates
+    }
+    btn.disabled = false; btn.textContent = "Run 500,000 rounds"; simRunning = false;
+  });
+
   $("vfRun").addEventListener("click", async () => {
     const s = $("vfServer").value.trim();
     const c = $("vfClient").value.trim();
