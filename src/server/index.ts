@@ -37,7 +37,7 @@ import {
   rotateSeed, recentBets, recentWins, leaderboard, topUp,
 } from "./ledger.js";
 import { addFeedClient } from "./feed.js";
-import { noteContext } from "./security.js";
+import { noteContext, isGameBlocked } from "./security.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -64,6 +64,18 @@ app.use(helmet({
 app.use("/api", rateLimit({ windowMs: 10_000, max: 120, standardHeaders: true, legacyHeaders: false }));
 
 app.use(express.json({ limit: "16kb" }));
+
+// Kill switch: if HouseWatch has paused a game (integrity alert), refuse to open a
+// new bet on it. The path is /api/<game>/bet or /api/<game>/start; in-progress
+// rounds (cashout, reveal) are left alone so nobody is stranded mid-game.
+app.use("/api", (req, res, next) => {
+  const m = req.path.match(/^\/([a-z]+)\/(bet|start)$/);
+  if (m && isGameBlocked(m[1])) {
+    res.status(423).json({ error: `${m[1]} is paused for a fairness review. Try another game.` });
+    return;
+  }
+  next();
+});
 
 // Force browsers to revalidate JS/HTML every load (they still get a fast 304 when
 // unchanged) so a new deploy is picked up immediately, instead of an old build
