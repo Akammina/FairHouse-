@@ -26,11 +26,11 @@ Each game turns that digest into a result. The mappings are in
 
 | Game | Kind | Mapping | Payout |
 |---|---|---|---|
-| Dice | instant | first 32 bits → roll `0–99.99`, win under target | `100/target`, edged |
+| Dice | instant | first 32 bits → roll `0-99.99`, win under target | `100/target`, edged |
 | Coinflip | instant | digest → heads / tails | `1.98×` |
 | Slots | instant | three reels from the digest, three-of-a-kind pays | up to `70×` |
-| Plinko | instant | one bit per row → 12-row path → bucket | `0.5×–15×` |
-| Roulette | instant | European wheel `0–36` | straight `36×`, even-money `2×`, dozen `3×` |
+| Plinko | instant | one bit per row → 12-row path → bucket | `0.5×-15×` |
+| Roulette | instant | European wheel `0-36` | straight `36×`, even-money `2×`, dozen `3×` |
 | Wheel | instant | digest → one of 20 segments | up to `3.5×` |
 | Keno | instant | 10 drawn from a pool of 40 | paytable by spots × hits |
 | Crash | live (SSE) | rising multiplier busts at a seed-derived point | your cash-out × |

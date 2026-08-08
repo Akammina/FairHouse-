@@ -6,7 +6,7 @@ export function renderDice(root, ctx) {
     title: "Dice", iconKey: "dice", accent: "var(--dice)",
     stage: `
       <p class="msg" id="dmsg" style="margin-bottom:6px">Set your win chance, then roll under your target</p>
-      <div class="dice-track"><div class="dice-win" id="dwin"></div><div class="dice-pointer" id="dptr"><span id="dval">—</span></div></div>
+      <div class="dice-track"><div class="dice-win" id="dwin"></div><div class="dice-pointer" id="dptr"><span id="dval">-</span></div></div>
       <div class="dice-ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
       <input id="dtarget" class="slider" type="range" min="${DICE_TARGET_MIN}" max="${DICE_TARGET_MAX}" step="1" value="50" style="margin:28px 0 22px" />
       <div class="stat-row" style="margin-bottom:18px">
@@ -58,8 +58,8 @@ export function renderDice(root, ctx) {
       $("dptr").className = "dice-pointer " + (res.win ? "win" : "lose");
       $("dval").textContent = res.roll.toFixed(2);
       $("dmsg").textContent = res.win
-        ? `Rolled ${res.roll.toFixed(2)} — won +${ctx.money(res.payoutCents - res.betCents)}`
-        : `Rolled ${res.roll.toFixed(2)} — lost ${ctx.money(res.betCents)}`;
+        ? `Rolled ${res.roll.toFixed(2)}, won +${ctx.money(res.payoutCents - res.betCents)}`
+        : `Rolled ${res.roll.toFixed(2)}, lost ${ctx.money(res.betCents)}`;
       $("dmsg").className = "msg " + (res.win ? "win" : "lose");
       ctx.applyResult(res);
       pushRecent(ctx, "dice", `under ${res.target} → ${res.roll.toFixed(2)}`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);

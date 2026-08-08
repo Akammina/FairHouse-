@@ -1,4 +1,4 @@
-// Full-screen "BIG WIN" celebration — a casino money-moment. Any game can fire it
+// Full-screen "BIG WIN" celebration. Any game can fire it
 // (wired centrally in app.js on large net wins). Rays, gold burst, count-up.
 import { burst } from "./confetti.js";
 import { Sound } from "./sound.js";

@@ -1,7 +1,7 @@
 """Generate the charts used in the lab's README:
-  1. rtp_by_game.png     — measured RTP per game vs. the nominal 99% line
-  2. convergence.png     — running RTP converging to its true value (LLN)
-  3. plinko_distribution — where the Plinko ball lands, and the resulting edge
+  1. rtp_by_game.png     measured RTP per game vs the nominal 99% line
+  2. convergence.png     running RTP converging to its true value (LLN)
+  3. plinko_distribution where the Plinko ball lands, and the resulting edge
 
 Run:  python reports/charts.py   (from the math-lab/ directory)
 """

@@ -58,7 +58,7 @@ export function renderVpoker(root, ctx) {
       const res = await ctx.api("/api/vpoker/draw", { roundId: round.roundId, holds: held });
       renderHand(res.hand, false);
       ctx.sound.reveal();
-      $("vpMsg").textContent = res.win ? `${res.name} — ${res.multiplier}× — won +${ctx.money(res.payoutCents - res.betCents)}!` : `${res.name}`;
+      $("vpMsg").textContent = res.win ? `${res.name}, ${res.multiplier}×, won +${ctx.money(res.payoutCents - res.betCents)}!` : `${res.name}`;
       $("vpMsg").className = "msg " + (res.win ? "win" : "lose");
       if (res.win) { ctx.sound.win(); const r = handEl.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, 1.3); }
       else ctx.sound.lose();

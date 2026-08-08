@@ -17,7 +17,7 @@ export function renderTower(root, ctx) {
         ${DIFFS.map((d) => `<button class="tw-diff ${d.key === "medium" ? "sel" : ""}" data-diff="${d.key}"><b>${d.label}</b><span>${d.sub}</span></button>`).join("")}
       </div>
       <div class="tower" id="tower"></div>
-      <p class="msg" id="twMsg" style="margin:12px 0">Climb the tower — one tile per row hides a 💀. Cash out any time.</p>
+      <p class="msg" id="twMsg" style="margin:12px 0">Climb the tower. One tile per row hides a 💀. Cash out any time.</p>
       ${stakeField("twStake")}
       <div class="tw-actions">
         <button id="twStart" class="btn" style="--accent:${ACCENT}">Start climb</button>
@@ -102,7 +102,7 @@ export function renderTower(root, ctx) {
       if (res.trap) {
         revealRow(rowEl, res.layout[res.row], tile, true);
         revealAll(res.layout);
-        $("twMsg").textContent = `💀 Skull on row ${res.row + 1} — the climb ends here.`;
+        $("twMsg").textContent = `💀 Skull on row ${res.row + 1}. The climb ends here.`;
         $("twMsg").className = "msg lose";
         ctx.applyResult(res);
         pushRecent(ctx, "tower", `${round.diff} · fell on row ${res.row + 1}`, round.betCents, 0, false, round.nonce, round.serverSeedHash, round.clientSeed);
@@ -114,13 +114,13 @@ export function renderTower(root, ctx) {
       ctx.sound.reveal();
       highlight();
       if (res.cleared) {
-        $("twMsg").textContent = `🐉 Top of the tower! ${res.multiplier}× — +${money(res.payoutCents - round.betCents)}`;
+        $("twMsg").textContent = `🐉 Top of the tower! ${res.multiplier}×, +${money(res.payoutCents - round.betCents)}`;
         $("twMsg").className = "msg win";
         finishWin(res, `${round.diff} · reached the top @${res.multiplier}×`);
       } else {
         const cash = $("twCash");
         cash.style.display = ""; cash.disabled = false;
-        cash.textContent = `Cash out ${res.multiplier}× — ${money(Math.floor(round.betCents * res.multiplier))}`;
+        cash.textContent = `Cash out ${res.multiplier}× · ${money(Math.floor(round.betCents * res.multiplier))}`;
         $("twMsg").textContent = res.nextMultiplier ? `Safe! Next row pays ${res.nextMultiplier}×` : "";
         $("twMsg").className = "msg";
         enableCurrent();
@@ -137,7 +137,7 @@ export function renderTower(root, ctx) {
     try {
       const res = await ctx.api("/api/tower/cashout", { roundId: round.roundId });
       revealAll(res.layout);
-      $("twMsg").textContent = `Cashed out ${res.multiplier}× — +${money(res.payoutCents - round.betCents)}`;
+      $("twMsg").textContent = `Cashed out ${res.multiplier}×, +${money(res.payoutCents - round.betCents)}`;
       $("twMsg").className = "msg win";
       finishWin(res, `${round.diff} · cashed row ${round.level} @${res.multiplier}×`);
     } catch (e) {

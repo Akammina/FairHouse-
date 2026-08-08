@@ -73,8 +73,8 @@ export function renderKeno(root, ctx) {
       picks.forEach((n) => { if (!res.draw.includes(n)) tile(n).classList.add("miss"); });
       locked = true;
       $("kmsg").textContent = res.win
-        ? `${res.hits}/${res.picks.length} hits — ${res.multiplier}× — won +${ctx.money(res.payoutCents - res.betCents)}`
-        : `${res.hits}/${res.picks.length} hits — ${res.multiplier}× — lost ${ctx.money(res.betCents)}`;
+        ? `${res.hits}/${res.picks.length} hits, ${res.multiplier}×, won +${ctx.money(res.payoutCents - res.betCents)}`
+        : `${res.hits}/${res.picks.length} hits, ${res.multiplier}×, lost ${ctx.money(res.betCents)}`;
       $("kmsg").className = "msg " + (res.win ? "win" : "lose");
       ctx.applyResult(res);
       pushRecent(ctx, "keno", `${res.hits}/${res.picks.length} → ${res.multiplier}×`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);

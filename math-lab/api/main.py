@@ -1,11 +1,11 @@
 """FastAPI service for the FairHouse Game Math & Fairness Lab.
 
-Two capabilities:
-  * POST /verify   — reproduce every game's outcome for a given
-                     (server_seed, client_seed, nonce), i.e. independently prove
-                     any real FairHouse bet was not tampered with.
-  * GET  /simulate — run a live Monte-Carlo RTP measurement for a game.
-  * GET  /rtp      — the full RTP / house-edge table.
+Endpoints:
+  * POST /verify   reproduce every game's outcome for a given
+                   (server_seed, client_seed, nonce), i.e. independently prove
+                   a real FairHouse bet was not tampered with.
+  * GET  /simulate run a live Monte-Carlo RTP measurement for one game.
+  * GET  /rtp      the full RTP / house-edge table.
 
 Run:  uvicorn api.main:app --reload   (from the math-lab/ directory)
 """
@@ -43,7 +43,7 @@ def games() -> list[dict]:
 
 @app.post("/verify")
 def verify(req: VerifyRequest) -> dict:
-    """Reproduce the per-bet digest and every game's outcome from it — the same
+    """Reproduce the per-bet digest and every game's outcome from it: the same
     numbers FairHouse produced, recomputed independently in Python."""
     hmac = bet_hmac(req.server_seed, req.client_seed, req.nonce)
     return {
@@ -69,7 +69,7 @@ def verify(req: VerifyRequest) -> dict:
 def simulate_game(game: str, base: int = 200_000) -> dict:
     if game not in GAMES:
         raise HTTPException(404, f"Unknown game '{game}'. Try one of: {', '.join(GAMES)}")
-    base = max(1_000, min(base, 2_000_000))  # keep request latency sane
+    base = max(1_000, min(base, 2_000_000))  # cap it so requests stay fast
     return simulate(game, base=base).as_row()
 
 

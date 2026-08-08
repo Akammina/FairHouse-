@@ -1,5 +1,5 @@
 /**
- * FairHouse server — one wallet, one fairness engine, thirteen games.
+ * FairHouse server: one wallet, one fairness engine, thirteen games.
  *
  * Instant games (dice, coinflip, slots, plinko, roulette, wheel, keno) resolve
  * in a single request: derive the outcome from the committed seed, debit the
@@ -65,8 +65,8 @@ app.use("/api", rateLimit({ windowMs: 10_000, max: 120, standardHeaders: true, l
 app.use(express.json({ limit: "16kb" }));
 
 // Force browsers to revalidate JS/HTML every load (they still get a fast 304 when
-// unchanged) so a new deploy is picked up immediately — no more stale-cache bugs
-// where an old build lingers in the browser.
+// unchanged) so a new deploy is picked up immediately, instead of an old build
+// lingering in a stale cache.
 const noCacheJs = (res: express.Response, path: string) => {
   if (path.endsWith(".js") || path.endsWith(".html")) res.setHeader("Cache-Control", "no-cache");
 };
@@ -76,7 +76,7 @@ app.use("/shared", express.static(join(__dirname, "../shared"), { setHeaders: no
 const stakeCents = (stake: unknown) => Math.round(Number(stake) * 100);
 function requirePlayer(id: unknown) {
   const p = getPlayer(String(id));
-  if (!p) throw new Error("Unknown player — start a session first");
+  if (!p) throw new Error("Unknown player, start a session first");
   return p;
 }
 /** Defense-in-depth: a round can only be acted on by the player who owns it. */
@@ -121,7 +121,7 @@ app.post("/api/dice/bet", (req, res) =>
     const p = requirePlayer(req.body?.playerId);
     const target = Number(req.body?.target);
     const bet = stakeCents(req.body?.stake);
-    if (!(target >= DICE_TARGET_MIN && target <= DICE_TARGET_MAX)) throw new Error(`Target ${DICE_TARGET_MIN}–${DICE_TARGET_MAX}`);
+    if (!(target >= DICE_TARGET_MIN && target <= DICE_TARGET_MAX)) throw new Error(`Target ${DICE_TARGET_MIN}-${DICE_TARGET_MAX}`);
     if (!(bet > 0)) throw new Error("Invalid stake");
     const roll = diceRoll(await betHmac(p.server_seed, p.client_seed, p.nonce));
     const win = diceWin(roll, target);
@@ -176,8 +176,8 @@ interface CrashRound {
   lossTimer?: ReturnType<typeof setTimeout>; // deferred loss settlement (grace window)
 }
 // A cash-out sent just before the bust can arrive just after it (reaction + network
-// lag). We don't finalize the loss until this grace passes, so such a cash-out —
-// as long as the multiplier it locked in is below the bust point — still wins.
+// lag). We don't finalize the loss until this grace passes, so such a cash-out
+// still wins as long as the multiplier it locked in is below the bust point.
 const CRASH_LOSS_GRACE_MS = 800;
 const crashRounds = new Map<string, CrashRound>();
 const crashActive = new Map<string, string>();
@@ -215,7 +215,7 @@ function settleCrashWin(r: CrashRound, mult: number): { payoutCents: number; bal
 function maybeAutoCashout(r: CrashRound): { multiplier: number; payoutCents: number; balance: number } | null {
   if (r.ended || r.autoCashout === undefined || r.autoCashout > r.crashPoint) return null;
   if (crashMultiplierAt(Date.now() - r.startedAt) < r.autoCashout) return null;
-  const mult = r.autoCashout; // already normalized to 2 dp — pay exactly what the player set
+  const mult = r.autoCashout; // already normalized to 2 dp, pay exactly what the player set
   const w = settleCrashWin(r, mult);
   return { multiplier: mult, ...w };
 }
@@ -294,13 +294,13 @@ app.post("/api/crash/cashout", (req, res) =>
     // instant can never turn an auto-win into a reported loss.
     const auto = maybeAutoCashout(r);
     if (auto) return { multiplier: auto.multiplier, payoutCents: auto.payoutCents, balance: auto.balance };
-    // Loss already finalized (grace elapsed) — report the honest outcome, never a
+    // Loss already finalized (grace elapsed): report the honest outcome, never a
     // phantom win. (Won't credit twice; won't claim a win we didn't pay.)
     if (r.ended) return { crashed: true, crashPoint: floor2(r.crashPoint) };
 
     // "What you see is what you get." The client sends the multiplier it was
     // displaying (`at`) when you tapped. We clamp it to what elapsed time allows
-    // — you can never claim more than the server's own clock reached — so it's
+    // (you can never claim more than the server's own clock reached) so it's
     // provably fair and unspoofable. Then it's a win as long as that locked value
     // is below the hidden crash point, even if the request arrived a beat late.
     const serverMult = crashMultiplierAt(Date.now() - r.startedAt);
@@ -340,7 +340,7 @@ app.post("/api/roulette/bet", (req, res) =>
     const spec = req.body?.bet;
     if (!(bet > 0)) throw new Error("Invalid stake");
     if (!spec || !ROULETTE_TYPES.includes(spec.type)) throw new Error("Pick a bet");
-    if (spec.type === "straight" && !(Number.isInteger(spec.number) && spec.number >= 0 && spec.number <= 36)) throw new Error("Number 0–36");
+    if (spec.type === "straight" && !(Number.isInteger(spec.number) && spec.number >= 0 && spec.number <= 36)) throw new Error("Number 0-36");
     const n = rouletteNumber(await betHmac(p.server_seed, p.client_seed, p.nonce));
     const mult = roulettePayout(n, spec as RouletteBet);
     const payout = Math.floor(bet * mult);
@@ -374,7 +374,7 @@ app.post("/api/keno/bet", (req, res) =>
     const picks = Array.isArray(req.body?.picks) ? req.body.picks.map(Number) : [];
     if (!(bet > 0)) throw new Error("Invalid stake");
     const unique = [...new Set(picks)];
-    if (unique.length !== picks.length || picks.length < 1 || picks.length > KENO_MAX_PICKS) throw new Error(`Pick 1–${KENO_MAX_PICKS} numbers`);
+    if (unique.length !== picks.length || picks.length < 1 || picks.length > KENO_MAX_PICKS) throw new Error(`Pick 1-${KENO_MAX_PICKS} numbers`);
     if (!picks.every((n: number) => Number.isInteger(n) && n >= 1 && n <= KENO_POOL)) throw new Error("Bad numbers");
     const draw = await kenoDraw(await betHmac(p.server_seed, p.client_seed, p.nonce));
     const hits = picks.filter((n: number) => draw.includes(n)).length;
@@ -400,7 +400,7 @@ app.post("/api/mines/start", (req, res) =>
     const p = requirePlayer(req.body?.playerId);
     const mines = Math.trunc(Number(req.body?.mines));
     const bet = stakeCents(req.body?.stake);
-    if (!(mines >= 1 && mines <= 24)) throw new Error("Mines must be 1–24");
+    if (!(mines >= 1 && mines <= 24)) throw new Error("Mines must be 1-24");
     if (!(bet > 0)) throw new Error("Invalid stake");
     if (activeByPlayer.has(p.id)) throw new Error("Finish your current Mines game first");
     debitStake(p.id, p.nonce, bet); // reserve stake + advance nonce
@@ -667,7 +667,7 @@ app.post("/api/hilo/guess", (req, res) =>
     assertOwner(r, req);
     const choice = String(req.body?.choice);
     if (choice !== "higher" && choice !== "lower") throw new Error("Bad guess");
-    if (r.pos + 1 >= 52) throw new Error("Deck exhausted — cash out");
+    if (r.pos + 1 >= 52) throw new Error("Deck exhausted, cash out");
 
     const cur = r.deck[r.pos];
     const next = r.deck[r.pos + 1];
@@ -748,8 +748,8 @@ function bjResolve(r: BjRound) {
   const dv = handValue(r.dealer);
   const wager = r.doubled ? r.stakeCents * 2 : r.stakeCents;
   let outcome: string, mult: number;
-  if (pv > 21) { outcome = "Bust — dealer wins"; mult = 0; }
-  else if (dv > 21) { outcome = "Dealer busts — you win"; mult = 2; }
+  if (pv > 21) { outcome = "Bust, dealer wins"; mult = 0; }
+  else if (dv > 21) { outcome = "Dealer busts, you win"; mult = 2; }
   else if (pv > dv) { outcome = "You win"; mult = 2; }
   else if (pv < dv) { outcome = "Dealer wins"; mult = 0; }
   else { outcome = "Push"; mult = 1; }
@@ -782,7 +782,7 @@ app.post("/api/bj/deal", (req, res) =>
 
     if (isBlackjack(player) || isBlackjack(dealer)) {
       let outcome: string, payout: number;
-      if (isBlackjack(player) && isBlackjack(dealer)) { outcome = "Push — both blackjack"; payout = bet; }
+      if (isBlackjack(player) && isBlackjack(dealer)) { outcome = "Push, both blackjack"; payout = bet; }
       else if (isBlackjack(player)) { outcome = "Blackjack! You win"; payout = Math.floor(bet * 2.5); }
       else { outcome = "Dealer blackjack"; payout = 0; }
       const balance = payout > 0 ? credit(p.id, payout) : getBalance(p.id);

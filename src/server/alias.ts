@@ -1,4 +1,4 @@
-// A stable, fun display handle derived from a playerId — so the live feed and
+// A stable display handle derived from a playerId, so the live feed and
 // leaderboards can show "GoldenFox42" instead of a raw id, without accounts or
 // storing any personal data. Deterministic: same id always maps to same handle.
 const ADJ = [

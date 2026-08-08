@@ -35,7 +35,7 @@ export function pushRecent(ctx, gameKey, detail, betCents, payoutCents, win, non
 
 function item(ul, b, append) {
   const win = b.win === 1 || b.win === true;
-  const net = win ? `+${money(b.payout_cents - b.bet_cents)}` : `−${money(b.bet_cents)}`;
+  const net = win ? `+${money(b.payout_cents - b.bet_cents)}` : `-${money(b.bet_cents)}`;
   const li = document.createElement("li");
   li.innerHTML = `<span class="badge ${win ? "win" : "lose"}">${win ? "WIN" : "LOSE"}</span>
     <span style="color:var(--faint);flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.detail}</span>

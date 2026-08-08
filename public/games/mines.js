@@ -71,7 +71,7 @@ export function renderMines(root, ctx) {
     (am.revealed || []).forEach((i) => { revealed.add(i); tileEl(i).classList.add("safe"); tileEl(i).textContent = "💎"; });
     [...grid.children].forEach((t, i) => (t.disabled = revealed.has(i)));
     updateStats(am.multiplier || 1, revealed.size);
-    $("mmsg").textContent = `Resumed — ${am.mines} mines, ${revealed.size} safe. Cash out or keep going.`;
+    $("mmsg").textContent = `Resumed: ${am.mines} mines, ${revealed.size} safe. Cash out or keep going.`;
     $("mmsg").className = "msg";
   }
 
@@ -84,7 +84,7 @@ export function renderMines(root, ctx) {
       ctx.applyResult(res);
       resetBoard(); setSetup(false);
       [...grid.children].forEach((t) => (t.disabled = false));
-      $("mmsg").textContent = `${res.mines} mines hidden — pick a tile`; $("mmsg").className = "msg";
+      $("mmsg").textContent = `${res.mines} mines hidden, pick a tile`; $("mmsg").className = "msg";
     } catch (e) {
       $("mmsg").textContent = e.message; $("mmsg").className = "msg lose";
     } finally {
@@ -100,7 +100,7 @@ export function renderMines(root, ctx) {
         ctx.sound.mine();
         tileEl(i).classList.add("mine"); tileEl(i).textContent = "💣";
         revealAllMines(res.layout);
-        $("mmsg").textContent = `Boom — lost ${ctx.money(round.stakeCents)}`; $("mmsg").className = "msg lose";
+        $("mmsg").textContent = `Boom, lost ${ctx.money(round.stakeCents)}`; $("mmsg").className = "msg lose";
         ctx.applyResult(res);
         pushRecent(ctx, "mines", `${round.mines} mines, hit after ${revealed.size} safe`, round.stakeCents, 0, false, round.nonce, round.serverSeedHash, round.clientSeed);
         endRound();
@@ -131,7 +131,7 @@ export function renderMines(root, ctx) {
       const res = await ctx.api("/api/mines/cashout", { roundId: round.roundId });
       ctx.sound.cashout();
       revealAllMines(res.layout);
-      $("mmsg").textContent = `Cashed out @ ${res.multiplier.toFixed(2)}× — won +${ctx.money(res.payoutCents - round.stakeCents)}`;
+      $("mmsg").textContent = `Cashed out @ ${res.multiplier.toFixed(2)}×, won +${ctx.money(res.payoutCents - round.stakeCents)}`;
       $("mmsg").className = "msg win";
       ctx.applyResult(res);
       pushRecent(ctx, "mines", `${round.mines} mines, cashed ${revealed.size} safe @${res.multiplier}×`, round.stakeCents, res.payoutCents, true, round.nonce, round.serverSeedHash, round.clientSeed);

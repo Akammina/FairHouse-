@@ -10,7 +10,7 @@ export function renderWheel(root, ctx) {
     title: "Wheel", iconKey: "wheel", accent: ACCENT,
     stage: `
       <div style="position:relative"><canvas id="wcanvas" style="width:100%;max-width:360px;aspect-ratio:1;display:block;margin:0 auto"></canvas></div>
-      <p class="msg" id="wmsg" style="margin:10px 0 14px">Spin the wheel — segments pay their multiplier</p>
+      <p class="msg" id="wmsg" style="margin:10px 0 14px">Spin the wheel. Segments pay their multiplier</p>
       ${stakeField("wstake")}
       <button id="wspin" class="btn" style="margin-top:14px;--accent:${ACCENT}">Spin wheel</button>`,
   });
@@ -98,8 +98,8 @@ export function renderWheel(root, ctx) {
       $("wmsg").textContent = "Spinning…"; $("wmsg").className = "msg";
       spinTo(res.segment, () => {
         $("wmsg").textContent = res.multiplier > 0
-          ? `Landed ${res.multiplier}× — ${res.payoutCents > res.betCents ? "won +" + ctx.money(res.payoutCents - res.betCents) : "returned " + ctx.money(res.payoutCents)}`
-          : `Landed 0× — lost ${ctx.money(res.betCents)}`;
+          ? `Landed ${res.multiplier}×, ${res.payoutCents > res.betCents ? "won +" + ctx.money(res.payoutCents - res.betCents) : "returned " + ctx.money(res.payoutCents)}`
+          : `Landed 0×, lost ${ctx.money(res.betCents)}`;
         $("wmsg").className = "msg " + (res.win ? "win" : "lose");
         ctx.applyResult(res);
         pushRecent(ctx, "wheel", `segment ${res.segment} → ${res.multiplier}×`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);

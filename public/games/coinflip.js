@@ -39,8 +39,8 @@ export function renderCoinflip(root, ctx) {
         coin.textContent = res.result === "heads" ? "H" : "T";
       }, 300);
       $("cmsg").textContent = res.win
-        ? `${res.result.toUpperCase()} — won +${ctx.money(res.payoutCents - res.betCents)}`
-        : `${res.result.toUpperCase()} — lost ${ctx.money(res.betCents)}`;
+        ? `${res.result.toUpperCase()}, won +${ctx.money(res.payoutCents - res.betCents)}`
+        : `${res.result.toUpperCase()}, lost ${ctx.money(res.betCents)}`;
       $("cmsg").className = "msg " + (res.win ? "win" : "lose");
       ctx.applyResult(res);
       pushRecent(ctx, "coinflip", `${res.side} → ${res.result}`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);

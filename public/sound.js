@@ -1,4 +1,4 @@
-// Procedural sound effects via the Web Audio API — no audio files needed.
+// Procedural sound effects via the Web Audio API, no audio files needed.
 // Sounds are synthesized from oscillators, so it's tiny and CSP-clean. Audio is
 // created lazily on the first user gesture (browsers block it before that).
 let audio = null;

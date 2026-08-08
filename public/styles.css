@@ -21,7 +21,7 @@
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Theme palettes — swap the accent everywhere via variables. */
+/* Theme palettes: swap the accent everywhere via variables. */
 :root[data-theme="neon"] {
   --gold: #ff3df0; --accent-2: #22d3ee; --accent-lite: #ffe3fb; --glow: 255, 61, 240;
 }
@@ -178,7 +178,7 @@ canvas { max-width: 100%; }
 .stake-row .input { flex: 1; text-align: center; }
 .mini { background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 0 12px; font-weight: 700; cursor: pointer; }
 .mini:hover { color: var(--ink); }
-/* Chip quick-bets — tap a denomination to set the stake */
+/* Chip quick-bets: tap a denomination to set the stake */
 .chip-row { display: flex; gap: 6px; margin-top: 8px; }
 .chip-bet { flex: 1; min-width: 44px; padding: 10px 0; border-radius: 999px; font-weight: 800; font-size: 13px; cursor: pointer; font-variant-numeric: tabular-nums; color: var(--ink); background: var(--panel-2); border: 2px dashed color-mix(in srgb, var(--accent, var(--gold)) 45%, var(--line)); transition: transform 0.1s, background 0.12s, border-color 0.12s; }
 .chip-bet:hover { background: var(--panel-3); border-color: var(--accent, var(--gold)); }
@@ -294,7 +294,7 @@ canvas { max-width: 100%; }
 .hilo-guesses .btn { flex: 1; }
 .hilo-hi { --accent: #33d17f; } .hilo-lo { --accent: #ff8a3d; }
 
-/* Slots — premium machine */
+/* Slots machine */
 .slot-machine {
   --cell: clamp(60px, 17vw, 86px);
   --gold1: var(--gold); --gold2: var(--accent-2);
@@ -499,7 +499,7 @@ canvas { max-width: 100%; }
 .loader-sub { color: var(--muted); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; animation: livePulse 1.8s ease-in-out infinite; }
 
 /* ===== Mobile UX polish ===== */
-/* Kill the 300ms tap delay and the grey tap-flash on iOS — makes taps feel instant. */
+/* Kill the 300ms tap delay and the grey tap-flash on iOS so taps feel instant. */
 a, button, input, .game-card, .lvl, .tw-tile, .tw-diff, .knum, .pick, .chip-bet, .mini, .mem-card {
   -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
@@ -522,7 +522,7 @@ a, button, input, .game-card, .lvl, .tw-tile, .tw-diff, .knum, .pick, .chip-bet,
 @media (max-width: 760px) { .topbar { padding-top: calc(10px + env(safe-area-inset-top)); } }
 .loader { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 
-/* Bottom tab bar — thumb navigation. Only in the installed (standalone) app, so
+/* Bottom tab bar for thumb navigation. Only in the installed (standalone) app, so
    it never fights the Safari toolbar; in-browser users keep the top nav. */
 .botnav { display: none; }
 @media (max-width: 760px) and (display-mode: standalone) {
@@ -735,7 +735,7 @@ a, button, input, .game-card, .lvl, .tw-tile, .tw-diff, .knum, .pick, .chip-bet,
   .verify-out .vf-results { grid-template-columns: 1fr 1fr; }
 }
 
-/* Crash — auto cash-out field */
+/* Crash auto cash-out field */
 .auto-cash { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--muted); }
 .auto-input { display: inline-flex; align-items: center; gap: 3px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 8px 11px; color: var(--faint); }
 .auto-input input { width: 5ch; background: transparent; border: none; color: var(--ink); font-family: var(--mono); font-size: 14px; font-weight: 700; text-align: right; padding: 0; -moz-appearance: textfield; appearance: textfield; }
@@ -743,11 +743,11 @@ a, button, input, .game-card, .lvl, .tw-tile, .tw-diff, .knum, .pick, .chip-bet,
 .auto-input input:focus { outline: none; }
 .auto-input:focus-within { border-color: var(--accent, var(--gold)); }
 
-/* Live cash-out amount inside the button — ignores pointer events so the click
+/* Live cash-out amount inside the button. Ignores pointer events so the click
    always lands on the button itself (desktop Safari drops clicks otherwise). */
 .cash-val { pointer-events: none; font-variant-numeric: tabular-nums; }
 
-/* Fairness page — live Monte-Carlo simulator */
+/* Fairness page: live Monte-Carlo simulator */
 .sim-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
 .sim-controls select { flex: 1; min-width: 200px; padding: 11px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); font-size: 14px; }
 .sim-controls .btn { width: auto; padding: 12px 20px; white-space: nowrap; }

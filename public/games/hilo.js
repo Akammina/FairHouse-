@@ -14,7 +14,7 @@ export function renderHilo(root, ctx) {
       <p class="msg" id="hiloMsg" style="margin:14px 0">Guess whether the next card is higher or lower.</p>
       <div class="stat-row" style="margin-bottom:14px">
         <div class="stat"><span class="l">Multiplier</span><span class="v" id="hiloMult">1.00×</span></div>
-        <div class="stat"><span class="l">Cash value</span><span class="v" id="hiloWin">—</span></div>
+        <div class="stat"><span class="l">Cash value</span><span class="v" id="hiloWin">-</span></div>
       </div>
       <div id="hiloPlay" hidden>
         <div class="hilo-guesses">
@@ -81,7 +81,7 @@ export function renderHilo(root, ctx) {
         $("hiloMsg").textContent = "Correct! Keep going or cash out."; $("hiloMsg").className = "msg win";
       } else {
         ctx.sound.lose();
-        $("hiloMsg").textContent = `Wrong — lost ${ctx.money(round.stakeCents)}`; $("hiloMsg").className = "msg lose";
+        $("hiloMsg").textContent = `Wrong, lost ${ctx.money(round.stakeCents)}`; $("hiloMsg").className = "msg lose";
         ctx.applyResult(res);
         pushRecent(ctx, "hilo", `busted at ${round.mult.toFixed(2)}×`, round.stakeCents, 0, false, round.nonce, round.serverSeedHash, round.clientSeed);
         endRound();
@@ -99,7 +99,7 @@ export function renderHilo(root, ctx) {
       const res = await ctx.api("/api/hilo/cashout", { roundId: round.roundId });
       ctx.sound.win(); ctx.applyResult(res);
       const won = res.payoutCents - round.stakeCents;
-      $("hiloMsg").textContent = won >= 0 ? `Cashed @ ${res.multiplier.toFixed(2)}× — ${won > 0 ? "won +" + ctx.money(won) : "broke even"}` : "";
+      $("hiloMsg").textContent = won >= 0 ? `Cashed @ ${res.multiplier.toFixed(2)}× ${won > 0 ? "won +" + ctx.money(won) : "broke even"}` : "";
       $("hiloMsg").className = "msg win";
       if (won > 0) { const r = $("hiloCard").getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, 1.2); }
       pushRecent(ctx, "hilo", `cashed @${res.multiplier.toFixed(2)}×`, round.stakeCents, res.payoutCents, won > 0, round.nonce, round.serverSeedHash, round.clientSeed);

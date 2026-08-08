@@ -1,7 +1,7 @@
 """Monte-Carlo simulator for every FairHouse game.
 
-Each game runs through the *real* provably-fair pipeline — a random server seed,
-a fixed client seed, and an incrementing nonce, exactly as the live casino does —
+Each game runs through the real provably-fair pipeline (a random server seed, a
+fixed client seed, and an incrementing nonce, exactly as the live casino does),
 and we measure the realised return per unit staked. From that we report:
 
   * RTP (return-to-player)  = mean payout per unit bet
@@ -10,9 +10,9 @@ and we measure the realised return per unit staked. From that we report:
   * hit frequency           = share of rounds that pay anything
 
 Every game nominally targets a 1% edge, but several (slots, plinko, wheel,
-roulette, keno) have discrete paytables whose *true* RTP lands elsewhere — the
-simulator surfaces that, and ``theoretical_rtp`` gives the closed-form value to
-check the simulation against.
+roulette, keno) have discrete paytables whose true RTP lands elsewhere. The
+simulator surfaces that, and ``theory`` gives the closed-form value to check the
+simulation against.
 """
 from __future__ import annotations
 

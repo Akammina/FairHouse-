@@ -1,6 +1,6 @@
 /**
- * Fairness & Odds page. Two things, both computed from the same shared math the
- * games use — nothing hard-coded:
+ * Fairness & Odds page. Two things, both from the same shared math the games use,
+ * nothing hard-coded:
  *   1. Each game's true RTP / house edge, computed live in the browser from its
  *      real paytable (the fixed-paytable games), with the instant games' designed
  *      1% edge confirmed by the Python Monte-Carlo lab.
@@ -43,9 +43,9 @@ const rtpKeno = (spots = 8) => {
   return rtp;
 };
 
-// rtp: return-to-player as a fraction. `computed` games are derived from their
-// paytable here; the rest are edge-adjusted to 99% by design (see games.ts) and
-// verified by the lab's simulation.
+// rtp: return-to-player as a fraction. `computed` games come from their paytable
+// here; the rest are edge-adjusted to 99% by design (see games.ts) and confirmed
+// by the lab's simulation.
 function oddsRows() {
   const rows = [
     { name: "Dice", bet: "any win chance", rtp: 0.99, computed: false },
@@ -66,19 +66,19 @@ function oddsRows() {
 
 const edgeClass = (edge) => (edge <= 0.015 ? "edge-good" : edge <= 0.03 ? "edge-mid" : "edge-bad");
 
-// ---- Live Monte-Carlo: one simulated round → payout multiplier per unit staked.
-// Uniform sampling is equivalent to the HMAC's uniform entropy, so these match the
+// Live Monte-Carlo: one simulated round gives a payout multiplier per unit staked.
+// Uniform sampling matches the HMAC's uniform entropy, so these line up with the
 // real games (and the Python lab) exactly, just far faster.
 const rint = (n) => Math.floor(Math.random() * n);
 const SIM = {
-  dice: { label: "Dice — roll under 50", theory: 0.99, play: () => (Math.random() * 100 < 50 ? diceMultiplier(50) : 0) },
+  dice: { label: "Dice: roll under 50", theory: 0.99, play: () => (Math.random() * 100 < 50 ? diceMultiplier(50) : 0) },
   coinflip: { label: "Coinflip", theory: 0.99, play: () => (Math.random() < 0.5 ? COIN_MULTIPLIER : 0) },
-  limbo: { label: "Limbo / Crash — cash out at 2×", theory: 0.99, play: () => ((1 - HOUSE_EDGE) / (1 - Math.random()) >= 2 ? 2 : 0) },
+  limbo: { label: "Limbo / Crash: cash out at 2×", theory: 0.99, play: () => ((1 - HOUSE_EDGE) / (1 - Math.random()) >= 2 ? 2 : 0) },
   wheel: { label: "Wheel", theory: rtpWheel(), play: () => WHEEL_SEGMENTS[rint(WHEEL_SEGMENTS.length)] },
-  roulette: { label: "Roulette — bet red", theory: rtpRoulette(), play: () => { const n = rint(37); return n !== 0 && ROULETTE_RED.has(n) ? 2 : 0; } },
-  plinko: { label: "Plinko — 12 rows", theory: rtpPlinko(), play: () => { let b = 0; for (let i = 0; i < PLINKO_ROWS; i++) if (Math.random() < 0.5) b++; return PLINKO_MULTIPLIERS[b]; } },
-  slots: { label: "Slots — three reels", theory: rtpSlots(), play: () => { const a = rint(SLOT_COUNT), b = rint(SLOT_COUNT), c = rint(SLOT_COUNT); return a === b && b === c ? SLOT_PAYS[a] : 0; } },
-  keno: { label: "Keno — 8 spots", theory: rtpKeno(8), play: () => { const drawn = new Set(); while (drawn.size < KENO_DRAW) drawn.add(1 + rint(KENO_POOL)); let hits = 0; for (let s = 1; s <= 8; s++) if (drawn.has(s)) hits++; return KENO_PAYTABLE[8][hits] ?? 0; } },
+  roulette: { label: "Roulette: bet red", theory: rtpRoulette(), play: () => { const n = rint(37); return n !== 0 && ROULETTE_RED.has(n) ? 2 : 0; } },
+  plinko: { label: "Plinko: 12 rows", theory: rtpPlinko(), play: () => { let b = 0; for (let i = 0; i < PLINKO_ROWS; i++) if (Math.random() < 0.5) b++; return PLINKO_MULTIPLIERS[b]; } },
+  slots: { label: "Slots: three reels", theory: rtpSlots(), play: () => { const a = rint(SLOT_COUNT), b = rint(SLOT_COUNT), c = rint(SLOT_COUNT); return a === b && b === c ? SLOT_PAYS[a] : 0; } },
+  keno: { label: "Keno: 8 spots", theory: rtpKeno(8), play: () => { const drawn = new Set(); while (drawn.size < KENO_DRAW) drawn.add(1 + rint(KENO_POOL)); let hits = 0; for (let s = 1; s <= 8; s++) if (drawn.has(s)) hits++; return KENO_PAYTABLE[8][hits] ?? 0; } },
 };
 
 // Draw the running-RTP convergence chart on the canvas.
@@ -135,7 +135,7 @@ export function renderFairness(root) {
         <div class="hero-badge"><span class="live-dot"></span> PROVABLY FAIR</div>
         <h1>Fairness &amp; Odds</h1>
         <p>Every outcome is committed before you bet and can be recomputed by anyone.
-           Here's the exact house edge of each game — and a tool to verify any bet yourself.</p>
+           Here's the exact house edge of each game, plus a tool to verify any bet yourself.</p>
       </header>
 
       <section class="fair-card">
@@ -164,7 +164,7 @@ export function renderFairness(root) {
           </table>
         </div>
         <p class="fair-foot">Notice the fixed-paytable games (Wheel, Roulette, Plinko, Slots) can't hit
-          exactly 1% — their discrete payouts land the edge higher. Keno's 8-spot table is the harshest.
+          exactly 1%: their discrete payouts land the edge higher. Keno's 8-spot table is the harshest.
           The <a href="${LAB_URL}" target="_blank" rel="noopener">math-lab</a> proves these numbers by
           simulating millions of rounds.</p>
       </section>
@@ -175,7 +175,7 @@ export function renderFairness(root) {
           <a class="fair-link" href="${LAB_URL}" target="_blank" rel="noopener">Python lab (millions of rounds) →</a>
         </div>
         <p class="fair-sub">"Monte-Carlo" = play a game a huge number of times and measure what actually
-          happens. Pick a game and hit run — it simulates rounds right here in your browser using the same
+          happens. Pick a game and hit run: it simulates rounds right here in your browser using the same
           math the casino uses, and you'll watch the measured return-to-player (blue) converge to its true
           value (gold dashed line).</p>
         <div class="sim-controls">
@@ -204,7 +204,7 @@ export function renderFairness(root) {
 
   const $ = (id) => document.getElementById(id);
 
-  // ---- Monte-Carlo runner ----
+  // Monte-Carlo runner
   let simRunning = false;
   drawSimChart($("simChart"), [], SIM[$("simGame").value].theory); // empty axes on load
   $("simGame").addEventListener("change", () => {
@@ -255,7 +255,7 @@ export function renderFairness(root) {
         <span>Roulette <b class="ok">${rn} ${rouletteColor(rn)}</b></span>
         <span>Wheel <b class="ok">${wheelMultiplier(wheelSegment(hmac))}×</b></span>
         <span>Plinko <b class="ok">${plinkoMultiplier(plinkoBucket(plinkoPath(hmac)))}×</b></span>
-        <span>Slots <b class="ok">[${reels.join(" ")}] ${slotPayout(reels) ? slotPayout(reels) + "×" : "—"}</b></span>
+        <span>Slots <b class="ok">[${reels.join(" ")}] ${slotPayout(reels) ? slotPayout(reels) + "×" : "-"}</b></span>
         <span>Mines (3) <b class="ok">${mines}</b></span>
         <span>Keno draw <b class="ok">${keno}</b></span>
       </div>`;

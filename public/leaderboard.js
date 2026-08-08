@@ -24,7 +24,7 @@ export async function renderLeaderboard(root) {
           <span class="lb-rank">${medal(i)}</span>
           <span class="lb-name">${r.alias}</span>
           ${render(r)}
-        </li>`).join("")}</ol>` : `<p class="lb-empty">No bets yet — go play!</p>`}
+        </li>`).join("")}</ol>` : `<p class="lb-empty">No bets yet, go play!</p>`}
     </section>`;
 
   document.getElementById("lbGrid").innerHTML =

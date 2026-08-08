@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>FairHouse — provably-fair casino</title>
+<title>FairHouse - provably-fair casino</title>
 <!-- PWA: installable, full-screen on phones -->
 <link rel="manifest" href="/manifest.webmanifest" />
 <meta name="theme-color" content="#0b0f15" />
@@ -12,20 +12,20 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="FairHouse" />
-<meta name="description" content="FairHouse is a provably-fair casino with 13 games on one shared wallet — dice, crash, blackjack, mines and more. Every outcome is cryptographically verifiable in the browser." />
+<meta name="description" content="FairHouse is a provably-fair casino with 13 games on one shared wallet: dice, crash, blackjack, mines and more. Every outcome is cryptographically verifiable in the browser." />
 <meta name="theme-color" content="#0e1116" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
 <!-- Link preview (CV / LinkedIn / Slack). If your deployed domain differs, update the URLs below. -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="FairHouse" />
-<meta property="og:title" content="FairHouse — a provably-fair casino platform" />
-<meta property="og:description" content="13 games, one shared wallet, one fairness engine — every outcome cryptographically verifiable in the browser. Built with TypeScript, Node, Express, SQLite and Web Crypto." />
+<meta property="og:title" content="FairHouse: a provably-fair casino platform" />
+<meta property="og:description" content="13 games, one shared wallet, one fairness engine. Every outcome cryptographically verifiable in the browser. Built with TypeScript, Node, Express, SQLite and Web Crypto." />
 <meta property="og:url" content="https://fairhouse.onrender.com/" />
 <meta property="og:image" content="https://fairhouse.onrender.com/favicon.svg" />
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="FairHouse — a provably-fair casino platform" />
-<meta name="twitter:description" content="13 games, one shared wallet — every outcome cryptographically verifiable in the browser." />
+<meta name="twitter:title" content="FairHouse: a provably-fair casino platform" />
+<meta name="twitter:description" content="13 games, one shared wallet. Every outcome cryptographically verifiable in the browser." />
 
 <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -64,11 +64,11 @@
       <a href="#/blackjack">Blackjack</a>
     </nav>
     <div class="top-right">
-      <div class="jackpot"><span class="jp-label">Mega Jackpot</span><span id="jackpot" class="jp-amount">—</span></div>
+      <div class="jackpot"><span class="jp-label">Mega Jackpot</span><span id="jackpot" class="jp-amount">-</span></div>
       <button id="themeBtn" class="fair-btn icon-btn" title="Switch theme (Gold / Neon / Emerald)">🎨</button>
       <button id="soundBtn" class="fair-btn icon-btn" title="Toggle sound" aria-label="Toggle sound">🔊</button>
       <button id="fairBtn" class="fair-btn">🔒 Provably Fair</button>
-      <div class="wallet"><span class="wallet-label">Balance</span><span id="balance" class="wallet-amount">—</span></div>
+      <div class="wallet"><span class="wallet-label">Balance</span><span id="balance" class="wallet-amount">-</span></div>
       <button id="topupBtn" class="topup-btn" title="Get free credits">＋ Credits</button>
     </div>
   </header>
@@ -89,12 +89,12 @@
         <button id="fairClose" class="modal-close">✕</button>
       </div>
       <ol class="pf-steps">
-        <li>Before each bet, the server locks a secret seed and shows only its <b>fingerprint</b> (a hash) — it can't change it afterward.</li>
+        <li>Before each bet, the server locks a secret seed and shows only its <b>fingerprint</b> (a hash) that it can't change afterward.</li>
         <li>Your result comes from that seed + your client seed + a bet counter. Same inputs always give the same result.</li>
-        <li><b>Reveal</b> the seed and every bet is re-checked automatically — a green <b>✓</b> means it was fair.</li>
+        <li><b>Reveal</b> the seed and every bet is re-checked automatically. A green <b>✓</b> means it was fair.</li>
       </ol>
 
-      <div class="kv"><span>Server seed — locked (its hash)</span><code id="mCommit" class="hash">—</code></div>
+      <div class="kv"><span>Server seed, locked (its hash)</span><code id="mCommit" class="hash">-</code></div>
       <label class="seed-field">Your client seed<input id="mClient" type="text" /></label>
       <div class="kv"><span>Next bet uses nonce</span><b id="mNonce">0</b></div>
 
@@ -107,7 +107,7 @@
       <div id="mRevealed" class="revealed"></div>
 
       <details class="verify">
-        <summary>Advanced — verify manually</summary>
+        <summary>Advanced: verify manually</summary>
         <label>Server seed <input id="vServer" /></label>
         <div class="verify-row">
           <label>Client seed <input id="vClient" /></label>

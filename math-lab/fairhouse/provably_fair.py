@@ -1,12 +1,12 @@
-"""Faithful Python port of FairHouse's provably-fair core (src/shared/provablyFair.ts).
+"""Python port of FairHouse's provably-fair core (src/shared/provablyFair.ts).
 
-One commitment scheme powers the whole casino:
+One commitment scheme runs the whole casino:
   * the server holds a secret ``server_seed`` and publishes SHA-256(server_seed);
   * the player owns a public ``client_seed``;
   * a per-player ``nonce`` counts up once per bet, across all games.
-Each bet's entropy is HMAC-SHA256(server_seed, f"{client_seed}:{nonce}"); each
-game maps that digest to its own outcome (see games.py). This module reproduces
-the TypeScript byte-for-byte so any real FairHouse bet can be replayed here.
+Each bet's entropy is HMAC-SHA256(server_seed, f"{client_seed}:{nonce}"), and each
+game maps that digest to its own outcome (see games.py). This module matches the
+TypeScript byte-for-byte, so any real FairHouse bet can be replayed here.
 """
 from __future__ import annotations
 

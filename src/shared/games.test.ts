@@ -115,7 +115,7 @@ test("poker evaluator ranks hands correctly", () => {
   assert.equal(pokerEvaluate(sf).name, "Straight Flush");
   assert.equal(pokerEvaluate([card(1, 0), card(1, 1), card(1, 2), card(11, 0), card(11, 1)]).name, "Full House");
   assert.equal(pokerEvaluate([card(9, 0), card(9, 1), card(0, 0), card(3, 1), card(7, 2)]).name, "Jacks or Better");
-  assert.equal(pokerEvaluate([card(5, 0), card(5, 1), card(0, 0), card(3, 1), card(7, 2)]).multiplier, 0); // pair of 7s — no win
+  assert.equal(pokerEvaluate([card(5, 0), card(5, 1), card(0, 0), card(3, 1), card(7, 2)]).multiplier, 0); // pair of 7s, no win
   assert.equal(pokerEvaluate([card(2, 0), card(2, 1), card(5, 0), card(5, 2), card(9, 3)]).name, "Two Pair");
   // A-2-3-4-5 wheel straight
   assert.equal(pokerEvaluate([card(12, 0), card(0, 1), card(1, 2), card(2, 3), card(3, 0)]).name, "Straight");

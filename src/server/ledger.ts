@@ -2,7 +2,7 @@
  * Shared wallet + per-player fairness state for the whole casino.
  *
  * One balance and one seed triplet (serverSeed / clientSeed / nonce) are shared
- * across every game — the nonce advances once per resolved bet regardless of
+ * across every game. The nonce advances once per resolved bet regardless of
  * which game it was. Money is integer cents; each settlement is a single SQLite
  * transaction guarded by the nonce so a bet can't be replayed or double-paid.
  */

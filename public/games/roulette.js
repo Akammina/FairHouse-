@@ -7,7 +7,7 @@ const ORDER = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23
 const OUTCOMES = [
   { type: "red", label: "Red" }, { type: "black", label: "Black" },
   { type: "odd", label: "Odd" }, { type: "even", label: "Even" },
-  { type: "low", label: "1–18" }, { type: "high", label: "19–36" },
+  { type: "low", label: "1-18" }, { type: "high", label: "19-36" },
   { type: "dozen1", label: "1st 12" }, { type: "dozen2", label: "2nd 12" }, { type: "dozen3", label: "3rd 12" },
 ];
 const BLACK = "#2c333f";
@@ -21,7 +21,7 @@ export function renderRoulette(root, ctx) {
       <p class="msg" id="rmsg" style="margin:10px 0 14px">Pick a bet and spin</p>
       <div class="chips" id="chips">${OUTCOMES.map((o) => `<button class="chip-bet" data-type="${o.type}">${o.label}</button>`).join("")}</div>
       <div class="fld" style="margin-top:12px"><span>Or bet a single number (pays 35:1)</span>
-        <input id="rnum" class="input" type="number" min="0" max="36" placeholder="0–36" /></div>
+        <input id="rnum" class="input" type="number" min="0" max="36" placeholder="0-36" /></div>
       <div style="margin-top:12px">${stakeField("rstake")}</div>
       <button id="rspin" class="btn" style="margin-top:14px;--accent:${ACCENT}">Spin</button>`,
   });
@@ -134,11 +134,11 @@ export function renderRoulette(root, ctx) {
     spinning = true; $("rspin").disabled = true;
     try {
       const res = await ctx.api("/api/roulette/bet", { stake: Number($("rstake").value), bet });
-      $("rmsg").textContent = "No more bets — spinning…"; $("rmsg").className = "msg";
+      $("rmsg").textContent = "No more bets, spinning…"; $("rmsg").className = "msg";
       spinTo(res.number, () => {
         $("rmsg").textContent = res.win
-          ? `${res.number} ${res.color} — won +${ctx.money(res.payoutCents - res.betCents)}`
-          : `${res.number} ${res.color} — lost ${ctx.money(res.betCents)}`;
+          ? `${res.number} ${res.color}, won +${ctx.money(res.payoutCents - res.betCents)}`
+          : `${res.number} ${res.color}, lost ${ctx.money(res.betCents)}`;
         $("rmsg").className = "msg " + (res.win ? "win" : "lose");
         ctx.applyResult(res);
         const label = res.bet.type === "straight" ? `#${res.bet.number}` : res.bet.type;

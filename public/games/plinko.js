@@ -102,9 +102,9 @@ export function renderPlinko(root, ctx) {
     $("pdrop").disabled = true;
     try {
       const res = await ctx.api("/api/plinko/bet", { stake: Number($("pstake").value) });
-      $("pmsg").textContent = "Dropping…"; $("pmsg").className = "msg";
+      $("pmsg").textContent = "Dropping..."; $("pmsg").className = "msg";
       play(res, () => {
-        $("pmsg").textContent = `Landed on ${res.multiplier}× — ${res.payoutCents > res.betCents ? "won +" + ctx.money(res.payoutCents - res.betCents) : "returned " + ctx.money(res.payoutCents)}`;
+        $("pmsg").textContent = `Landed on ${res.multiplier}×, ${res.payoutCents > res.betCents ? "won +" + ctx.money(res.payoutCents - res.betCents) : "returned " + ctx.money(res.payoutCents)}`;
         $("pmsg").className = "msg " + (res.win ? "win" : "lose");
         ctx.applyResult(res);
         pushRecent(ctx, "plinko", `bucket ${res.bucket} → ${res.multiplier}×`, res.betCents, res.payoutCents, res.win, res.nonce, res.serverSeedHash, res.clientSeed);

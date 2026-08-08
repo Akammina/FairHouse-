@@ -53,9 +53,9 @@ export function renderSlots(root, ctx) {
       return;
     }
 
-    // Build each reel: N random cells, then [above, RESULT, below]. Land RESULT on the payline.
+    // Each reel: N random cells, then above/RESULT/below. RESULT lands on the payline.
     const durations = [2.0, 2.7, 3.4];
-    ctx.sound.spin(durations[2]); // mechanical reel rattle for the whole spin
+    ctx.sound.spin(durations[2]); // reel rattle for the whole spin
     strips.forEach((strip, i) => {
       const cells = [];
       for (let k = 0; k < N; k++) cells.push(rnd());
@@ -86,7 +86,7 @@ export function renderSlots(root, ctx) {
       setTimeout(() => strips.forEach((s) => s.children[N + 1]?.classList.remove("win-cell")), 2000);
     } else {
       banner.className = "slot-banner lose";
-      banner.textContent = "No line — spin again.";
+      banner.textContent = "No line, spin again.";
       ctx.sound.lose?.();
     }
     ctx.applyResult(res);
@@ -95,13 +95,13 @@ export function renderSlots(root, ctx) {
     spinning = false; btn.disabled = false;
   }
 
-  // Animated win count-up in the banner.
+  // Count the win up in the banner.
   function countUp(el, net, mult) {
     const start = performance.now(), dur = 650;
     const step = (now) => {
       const t = Math.min(1, (now - start) / dur);
       const val = Math.round(net * (1 - Math.pow(1 - t, 3)));
-      el.textContent = `${mult}× — WIN +${money(val)}`;
+      el.textContent = `${mult}× WIN +${money(val)}`;
       if (t < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);

@@ -1,11 +1,11 @@
-"""Faithful Python port of FairHouse's per-game math (src/shared/games.ts).
+"""Python port of FairHouse's per-game math (src/shared/games.ts).
 
 Each game maps the per-bet HMAC digest to a result deterministically, so this
 module and the live TypeScript casino compute the identical outcome. The parity
-test suite (tests/test_parity.py) checks this against reference values produced
-by the real TypeScript. All payouts carry the same 1% house edge, though several
-games' discrete paytables push their true RTP away from the nominal 99% — which
-is exactly what the simulator measures.
+suite (tests/test_parity.py) checks that against reference values produced by the
+real TypeScript. All payouts carry the same 1% house edge, but several games'
+discrete paytables push their true RTP away from the nominal 99%, which is
+exactly what the simulator measures.
 """
 from __future__ import annotations
 

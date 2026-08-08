@@ -1,6 +1,6 @@
 // Live "Big Wins" feed. Any winning bet is pushed to every connected client over
-// Server-Sent Events, so the casino feels busy and social — the scrolling win
-// ticker every real operator has. In-memory only; nothing to persist.
+// Server-Sent Events, the scrolling win ticker every real operator has. In-memory
+// only; nothing to persist.
 import type { Response } from "express";
 
 export interface WinEvent {

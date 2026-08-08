@@ -31,7 +31,7 @@ const THEMES = ["gold", "neon", "emerald"];
 const applyTheme = (t) => { document.documentElement.dataset.theme = t; localStorage.setItem("fairhouse_theme", t); };
 applyTheme(localStorage.getItem("fairhouse_theme") || "gold");
 
-// Haptic feedback (Android web; iOS Safari ignores it — sound covers both).
+// Haptic feedback (Android web; iOS Safari ignores it, sound covers both).
 const haptic = (pattern) => { try { navigator.vibrate?.(pattern); } catch { /* unsupported */ } };
 
 const _loadStart = performance.now();
@@ -137,14 +137,14 @@ function renderLobby(root, ctx) {
     { key: "memory", icon: "🃏", name: "Memory", tag: "Clear the pairs within your move budget.", accent: "#e879f9" },
     { key: "slots", icon: "🎰", name: "Slots", tag: "Spin three reels for a matching payout.", accent: "#f5c451" },
     { key: "hilo", icon: "🔼", name: "Hi-Lo", tag: "Higher or lower? Build a multiplier, cash out.", accent: "#4fd1c5" },
-    { key: "vpoker", icon: "🂡", name: "Video Poker", tag: "Deal, hold, draw — paid by poker hand.", accent: "#4caf82" },
+    { key: "vpoker", icon: "🂡", name: "Video Poker", tag: "Deal, hold, draw, paid by poker hand.", accent: "#4caf82" },
     { key: "blackjack", icon: "♠️", name: "Blackjack", tag: "Beat the dealer to 21. Hit, stand, double.", accent: "#2fae66" },
   ];
   root.innerHTML = `
     <div class="lobby-hero">
       <div class="hero-badge"><span class="live-dot"></span> LIVE · PROVABLY FAIR</div>
       <h1 class="hero-title">FairHouse</h1>
-      <p>Thirteen games, one wallet — every outcome cryptographically provable.</p>
+      <p>Thirteen games, one wallet. Every outcome cryptographically provable.</p>
       <div class="hero-stats">
         <div class="hstat"><span class="hv">13</span><span class="hl">Games</span></div>
         <div class="hstat"><span class="hv">1%</span><span class="hl">House edge</span></div>
@@ -174,7 +174,7 @@ function renderLobby(root, ctx) {
     requestAnimationFrame(step);
   });
 
-  // 3D tilt: cards lean toward the cursor — mouse devices only (touch just taps).
+  // 3D tilt: cards lean toward the cursor. Mouse devices only (touch just taps).
   if (matchMedia("(hover: hover) and (pointer: fine)").matches) {
     root.querySelectorAll(".game-card").forEach((card) => {
       card.addEventListener("pointermove", (e) => {
@@ -190,7 +190,7 @@ function renderLobby(root, ctx) {
 
 // ---------- Provably-fair modal ----------
 const GAME_ICON = { dice: "🎲", coinflip: "🪙", limbo: "🚀", mines: "💣", plinko: "🔻", roulette: "🎡", wheel: "🎯", keno: "🔢" };
-// Seeds we've revealed (hash → seed), kept so past bets stay verifiable across reloads.
+// Seeds we've revealed (hash -> seed), kept so past bets stay verifiable across reloads.
 const revealedSeeds = JSON.parse(localStorage.getItem("fairhouse_revealed") || "{}");
 const saveRevealed = () => localStorage.setItem("fairhouse_revealed", JSON.stringify(revealedSeeds));
 
@@ -206,13 +206,13 @@ function renderBetList() {
   const ul = $("betList");
   const bets = state.recent.slice(0, 15);
   if (!bets.length) {
-    ul.innerHTML = `<li class="bl-empty">No bets yet — play a game, then come back to verify it.</li>`;
+    ul.innerHTML = `<li class="bl-empty">No bets yet. Play a game, then come back to verify it.</li>`;
     $("pfHint").textContent = "";
     return;
   }
   const anyLocked = bets.some((b) => !revealedSeeds[b.server_seed_hash]);
   $("pfHint").innerHTML = anyLocked
-    ? `Bets under your <b>current</b> seed are locked 🔒 — they can't be verified until the seed is revealed. Hit <b>Reveal &amp; verify</b> to unlock and auto-check them.`
+    ? `Bets under your <b>current</b> seed are locked 🔒 and can't be verified until the seed is revealed. Hit <b>Reveal &amp; verify</b> to unlock and auto-check them.`
     : `Every bet below is checked automatically. Click any row to see the exact math.`;
   ul.innerHTML = bets.map((b, i) => `
     <li class="bl-row" data-i="${i}">
@@ -250,7 +250,7 @@ async function updateRowStatus(entry, i) {
 
 async function showRowMath(entry) {
   const seed = revealedSeeds[entry.server_seed_hash];
-  if (!seed) { $("mRevealed").innerHTML = `<span style="color:var(--muted)">Bet #${entry.nonce}'s seed is still secret — hit “🔓 Reveal &amp; verify” first.</span>`; return; }
+  if (!seed) { $("mRevealed").innerHTML = `<span style="color:var(--muted)">Bet #${entry.nonce}'s seed is still secret. Hit “🔓 Reveal &amp; verify” first.</span>`; return; }
   const hmac = await betHmac(seed, entry.client_seed, entry.nonce);
   const oc = await recomputeOutcome(entry, seed);
   $("mRevealed").innerHTML =
@@ -258,7 +258,7 @@ async function showRowMath(entry) {
     `SHA256(server seed) = ${(await sha256Hex(seed)).slice(0, 20)}… ${((await sha256Hex(seed)) === entry.server_seed_hash) ? "✓ matches its commitment" : "✗"}<br>` +
     `HMAC(seed, "${entry.client_seed}:${entry.nonce}") = ${hmac.slice(0, 20)}…<br>` +
     (oc ? `recomputed → <span style="color:var(--win)">${oc.text}</span> · you saw “${entry.detail}”`
-        : `outcome also depends on your picks/board — but the seed above is proven authentic`);
+        : `outcome also depends on your picks/board, but the seed above is proven authentic`);
 }
 
 $("fairBtn").addEventListener("click", () => { renderModal(); $("vClient").value = state.clientSeed; $("fairModal").hidden = false; });
@@ -271,7 +271,7 @@ $("mRotate").addEventListener("click", async () => {
     revealedSeeds[r.revealedHash] = r.revealedServerSeed; saveRevealed();
     state.serverSeedHash = r.serverSeedHash; state.clientSeed = r.clientSeed; state.nonce = r.nonce;
     renderModal();
-    $("mRevealed").innerHTML = `<b>Revealed your previous server seed</b> — the bets above now show ✓. A fresh seed is committed for your next bets.`;
+    $("mRevealed").innerHTML = `<b>Revealed your previous server seed.</b> The bets above now show ✓. A fresh seed is committed for your next bets.`;
   } catch (e) { $("mRevealed").innerHTML = `<span style="color:var(--lose)">${e.message}</span>`; }
 });
 
@@ -347,7 +347,7 @@ function initTicker() {
       if (wins.length > 25) wins.pop();
       render();
     };
-  } catch { /* feed unavailable — ticker stays hidden */ }
+  } catch { /* feed unavailable, ticker stays hidden */ }
 }
 
 // ---------- Progressive jackpot (cosmetic, always climbing) ----------

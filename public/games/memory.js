@@ -1,6 +1,6 @@
-// Memory Match — a provably-fair skill bet. Wager, then clear all pairs within
+// Memory Match: a provably-fair skill bet. Wager, then clear all pairs within
 // your move budget to win stake × multiplier. The deck is a seed-derived shuffle
-// held by the server, which reveals one card per flip (you can't peek ahead).
+// held by the server, which reveals one card per flip (no peeking ahead).
 import { shell, renderRecent, pushRecent, stakeField, wireStake } from "./common.js";
 import { burst } from "../confetti.js";
 
@@ -18,9 +18,9 @@ export function renderMemory(root, ctx) {
     stage: `
       <p class="msg" id="memMsg" style="margin-bottom:14px">Wager, then clear the board within your move budget to win.</p>
       <div class="stat-row" style="margin-bottom:14px">
-        <div class="stat"><span class="l">Moves left</span><span class="v" id="memLeft">—</span></div>
-        <div class="stat"><span class="l">Pairs</span><span class="v" id="memPairs">—</span></div>
-        <div class="stat"><span class="l">Win</span><span class="v" id="memWin">—</span></div>
+        <div class="stat"><span class="l">Moves left</span><span class="v" id="memLeft">-</span></div>
+        <div class="stat"><span class="l">Pairs</span><span class="v" id="memPairs">-</span></div>
+        <div class="stat"><span class="l">Win</span><span class="v" id="memWin">-</span></div>
       </div>
       <div class="mem-board">
         <div class="mem-grid" id="memGrid"></div>
@@ -115,7 +115,7 @@ export function renderMemory(root, ctx) {
     try {
       const res = await ctx.api("/api/memory/flip", { roundId: round.roundId, index: i });
       reveal(el, res.id);
-      if (res.firstCard) { lock = false; return; } // first card of the turn — free to pick the second
+      if (res.firstCard) { lock = false; return; } // first card of the turn, free to pick the second
 
       if (typeof res.movesLeft === "number") $("memLeft").textContent = res.movesLeft;
       else $("memLeft").textContent = Math.max(0, round.budget - res.moves);

@@ -34,7 +34,7 @@ def test_bet_parity(bet):
     assert g.plinko_path(hmac) == bet["plinkoPath"]
     assert g.plinko_bucket(g.plinko_path(hmac)) == bet["plinkoBucket"]
     assert g.plinko_multiplier(g.plinko_bucket(g.plinko_path(hmac))) == bet["plinkoMultiplier"]
-    # order-sensitive hash-sort deals — the strictest parity check
+    # order-sensitive hash-sort deals: the strictest parity check
     assert g.mines_layout(hmac, 3) == bet["minesLayout3"]
     assert g.tower_layout(hmac, 4, 1, 9) == bet["towerEasy"]
     assert g.tower_layout(hmac, 3, 2, 9) == bet["towerExpert"]

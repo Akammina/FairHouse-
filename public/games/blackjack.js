@@ -34,8 +34,7 @@ export function renderBlackjack(root, ctx) {
   const row = (el, cards, hideLast) => { el.innerHTML = cards.map((c) => cardHTML(c, "dealing")).join("") + (hideLast ? cardHTML(37, "back dealing") : ""); };
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  // Client-side hand value (mirrors the server) so we can show the dealer's total
-  // rising as each card turns over.
+  // Hand value, same math as the server. Lets us show the dealer total climb as cards turn over.
   const handValue = (cards) => {
     let total = 0, aces = 0;
     for (const c of cards) { const r = c % 13; total += r <= 8 ? r + 2 : r === 12 ? 11 : 10; if (r === 12) aces++; }
@@ -93,11 +92,11 @@ export function renderBlackjack(root, ctx) {
   $("bjDouble").addEventListener("click", () => act("/api/bj/double"));
 
   async function finish(res) {
-    $("bjActions").hidden = true;        // dealer is playing — no player actions
+    $("bjActions").hidden = true;        // dealer is playing, no player actions
     await revealDealer(res.dealer);      // flip hole card, then draw card by card
     const win = res.payoutCents > res.betCents;
     const push = res.payoutCents === res.betCents;
-    $("bjMsg").textContent = win ? `${res.outcome} — +${ctx.money(res.payoutCents - res.betCents)}` : res.outcome;
+    $("bjMsg").textContent = win ? `${res.outcome}, +${ctx.money(res.payoutCents - res.betCents)}` : res.outcome;
     $("bjMsg").className = "msg " + (win ? "win" : push ? "" : "lose");
     if (win) { ctx.sound.win(); const r = $("bjPlayer").getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, 1.3); }
     else if (!push) ctx.sound.lose();

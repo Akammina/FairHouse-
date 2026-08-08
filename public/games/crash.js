@@ -1,18 +1,18 @@
-// Crash — a live rising multiplier that busts at a provably-fair point. Bet, then
-// cash out before it crashes. The server streams the round over SSE and validates
-// cash-outs against its own clock, so it's cheat-proof; the bust point is the same
-// seed-derived formula as the old Limbo game.
+// Crash: a live rising multiplier that busts at a provably-fair point. Bet, then
+// cash out before it crashes. The server streams the round over SSE and checks
+// cash-outs against its own clock, so it can't be gamed. The bust point uses the
+// same seed-derived formula as the old Limbo game.
 //
-// Auto Cash Out: set a target and the SERVER cashes you out the instant it's
-// reached — so a win never depends on tapping at the right millisecond (which is
-// unreliable on a phone/laggy connection). You can still cash out manually.
+// Auto Cash Out: set a target and the server cashes you out the moment it's hit,
+// so a win doesn't depend on tapping at the exact millisecond (unreliable on a
+// phone or laggy connection). Manual cash-out still works too.
 import { CRASH_GROWTH_RATE, crashMultiplierAt } from "/shared/games.js";
 import { shell, renderRecent, pushRecent, stakeField, wireStake } from "./common.js";
 
 const ACCENT = "#38d0e0";
 
 export function renderCrash(root, ctx) {
-  // Add ?debug to the URL to show a live diagnostic readout (for troubleshooting).
+  // ?debug in the URL shows a live diagnostic readout.
   const DEBUG = new URLSearchParams(location.search).has("debug");
   shell(root, {
     title: "Crash", iconKey: "crash", accent: ACCENT,
@@ -22,7 +22,7 @@ export function renderCrash(root, ctx) {
         <div class="crash-mult" id="cmult">1.00×</div>
         <div class="crash-status" id="cstatus">Place a bet and cash out before it crashes.</div>
       </div>
-      ${DEBUG ? '<pre id="cdbg" style="margin-top:10px;padding:10px;background:#0a0e17;border:1px solid #2a3a4a;border-radius:8px;font-size:11px;line-height:1.5;color:#8fe;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto">debug ready — place a bet</pre>' : ''}
+      ${DEBUG ? '<pre id="cdbg" style="margin-top:10px;padding:10px;background:#0a0e17;border:1px solid #2a3a4a;border-radius:8px;font-size:11px;line-height:1.5;color:#8fe;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto">debug ready, place a bet</pre>' : ''}
       <div id="cSetup" style="margin-top:14px">
         ${stakeField("cStake")}
         <label class="auto-cash">Auto cash out at
@@ -54,7 +54,7 @@ export function renderCrash(root, ctx) {
 
   const perfElapsed = () => performance.now() - startPerf;
 
-  // ---- diagnostics (only active with ?debug) ----
+  // diagnostics (only with ?debug)
   let dbgTicks = 0, dbgLastTickAt = 0, dbgLog = [];
   const now = () => (performance.now() / 1000).toFixed(1);
   function dbg(msg) {
@@ -117,13 +117,13 @@ export function renderCrash(root, ctx) {
     });
     es.addEventListener("cashout", (e) => { lastEventAt = performance.now(); dbg("SSE cashout event"); onWin(JSON.parse(e.data)); }); // server auto-cashed us out
     es.addEventListener("crash", (e) => { lastEventAt = performance.now(); dbg("SSE crash event"); onCrash(JSON.parse(e.data).crashPoint); });
-    // If the stream drops mid-round, don't get stuck — poll the server for the outcome.
+    // If the stream drops mid-round, poll the server so we don't get stuck.
     es.onerror = () => { dbg("SSE error → poll"); if (es) { es.close(); es = null; } if (round && !crashed && !cashed) startPolling(); };
   }
 
-  // Safety net: some browsers (notably desktop Safari) can open the SSE connection
-  // but then deliver nothing and never fire `error`. If the stream goes quiet for
-  // ~1.2s, fall back to polling so the round always resolves and cash-out works.
+  // Some browsers (desktop Safari especially) open the SSE connection but deliver
+  // nothing and never fire `error`. If it goes quiet for ~1.2s, fall back to
+  // polling so the round always resolves.
   function startWatchdog() {
     clearInterval(watchdog);
     watchdog = setInterval(() => {
@@ -151,15 +151,15 @@ export function renderCrash(root, ctx) {
 
   function loop() {
     if (crashed || cashed) return;
-    // Smooth local animation, kept in step with the server by the SSE ticks. The
-    // cash-out you send locks in this exact value, and the server honors it (with a
-    // grace window) as long as it's below the hidden bust point — so a tap a beat
-    // late still wins. No display capping, so it stays smooth on every browser.
+    // Smooth local animation, kept in sync with the server by the SSE ticks. The
+    // cash-out we send locks in this value, and the server honors it (with a grace
+    // window) as long as it's below the hidden bust point, so a tap a beat late
+    // still wins. No display cap, so it stays smooth everywhere.
     cur = crashMultiplierAt(perfElapsed());
     $("cmult").textContent = cur.toFixed(2) + "×";
-    // Update ONLY the inner value span (which ignores pointer events), never the
-    // button's own text — rewriting the button text every frame makes desktop
-    // Safari drop the click (mousedown/up land on a text node that got replaced).
+    // Only touch the inner value span (it ignores pointer events), never the
+    // button text. Rewriting the button text every frame makes desktop Safari
+    // drop the click (mousedown/up land on a text node that got replaced).
     if (round) {
       const amt = ctx.money(Math.floor(round.stakeCents * cur));
       const el = $("cCashVal");
@@ -188,7 +188,7 @@ export function renderCrash(root, ctx) {
     }
   }
 
-  // Shared win handler for both a manual cash-out and a server auto-cash-out.
+  // Handles both manual cash-out and server auto-cash-out.
   function onWin(res) {
     if (cashed || crashed || !round) return;
     dbg(`WIN @${res.multiplier}`);
@@ -196,7 +196,7 @@ export function renderCrash(root, ctx) {
     $("cCash").style.display = "none"; // no dead button to tap
     cur = res.multiplier;
     $("cmult").textContent = res.multiplier.toFixed(2) + "×"; $("cmult").className = "crash-mult win";
-    $("cstatus").textContent = `Cashed out @ ${res.multiplier.toFixed(2)}× — won +${ctx.money(res.payoutCents - round.stakeCents)}`;
+    $("cstatus").textContent = `Cashed out @ ${res.multiplier.toFixed(2)}×, won +${ctx.money(res.payoutCents - round.stakeCents)}`;
     $("cstatus").className = "crash-status win";
     draw(cur, perfElapsed(), false);
     ctx.sound.win();
@@ -212,7 +212,7 @@ export function renderCrash(root, ctx) {
     $("cCash").style.display = "none"; // no dead button to tap
     cur = cp;
     $("cmult").textContent = cp.toFixed(2) + "×"; $("cmult").className = "crash-mult lose";
-    $("cstatus").textContent = `Crashed @ ${cp.toFixed(2)}× — lost ${ctx.money(round.stakeCents)}`;
+    $("cstatus").textContent = `Crashed @ ${cp.toFixed(2)}×, lost ${ctx.money(round.stakeCents)}`;
     $("cstatus").className = "crash-status lose";
     draw(cp, perfElapsed(), true);
     ctx.sound.lose();
@@ -231,7 +231,7 @@ export function renderCrash(root, ctx) {
     const yMax = Math.max(2, mult * 1.15);
     const tMax = Math.max(6000, elapsedMs * 1.05);
     const color = isCrash ? "#ff5d6c" : ACCENT;
-    // gridlines at doubling multipliers
+    // gridlines at each doubling
     g.strokeStyle = "rgba(255,255,255,0.05)"; g.lineWidth = 1;
     g.font = "10px ui-monospace, monospace"; g.fillStyle = "rgba(255,255,255,0.2)";
     for (let gl = 2; gl <= yMax; gl *= 2) {
