@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import { sha256Hex } from "../shared/provablyFair.js";
 import { alias } from "./alias.js";
 import { broadcastWin } from "./feed.js";
+import { emitBet } from "./security.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const db = new Database(join(__dirname, "../../fairhouse.db"));
@@ -144,6 +145,7 @@ export function recordBet(
   clientSeed: string,
 ): void {
   insertBet.run(playerId, game, nonce, detail, betCents, payoutCents, win ? 1 : 0, serverSeedHash, clientSeed, Date.now());
+  emitBet(playerId, game, betCents, payoutCents); // forward to HouseWatch if configured
   // Push any real win to the live feed.
   if (win && payoutCents > betCents && betCents > 0) {
     broadcastWin({

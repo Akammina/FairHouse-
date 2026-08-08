@@ -368,9 +368,14 @@ function initJackpot() {
 initBackground();
 initTicker();
 initJackpot();
+// A stable per-device id, so the risk engine can spot one device running many accounts.
+const deviceId = localStorage.getItem("fairhouse_device")
+  || (crypto.randomUUID?.() ?? String(Math.random()).slice(2));
+localStorage.setItem("fairhouse_device", deviceId);
+
 (async () => {
   try {
-    const s = await api("/api/session", { playerId: localStorage.getItem("fairhouse_pid") });
+    const s = await api("/api/session", { playerId: localStorage.getItem("fairhouse_pid"), device: deviceId });
     state.playerId = s.playerId;
     localStorage.setItem("fairhouse_pid", s.playerId);
     state.balance = s.balance; state.serverSeedHash = s.serverSeedHash; state.clientSeed = s.clientSeed; state.nonce = s.nonce; state.recent = s.recent || []; state.activeMines = s.activeMines || null;

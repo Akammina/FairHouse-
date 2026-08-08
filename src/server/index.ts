@@ -37,6 +37,7 @@ import {
   rotateSeed, recentBets, recentWins, leaderboard, topUp,
 } from "./ledger.js";
 import { addFeedClient } from "./feed.js";
+import { noteContext } from "./security.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -90,6 +91,7 @@ const wrap = (res: express.Response, fn: () => Promise<unknown>) =>
 app.post("/api/session", (req, res) =>
   wrap(res, async () => {
     const s = await ensureSession(req.body?.playerId);
+    noteContext(s.playerId, req.ip ?? "", String(req.body?.device ?? "")); // for HouseWatch, if configured
     return { ...s, recent: recentBets(s.playerId), activeMines: activeMinesFor(s.playerId) };
   }),
 );
